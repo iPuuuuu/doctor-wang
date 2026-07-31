@@ -1,5 +1,6 @@
 package com.ipuuuuu.doctorwang.viewmodel
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ipuuuuu.doctorwang.data.model.MedicalReport
@@ -14,22 +15,39 @@ import kotlinx.coroutines.launch
 data class ReportDetailUiState(
     val report: MedicalReport? = null,
     val isLoading: Boolean = true,
+    val errorMessage: String? = null,
 )
 
 @HiltViewModel
 class ReportDetailViewModel @Inject constructor(
+    savedStateHandle: SavedStateHandle,
     private val repository: DoctorWangRepository,
 ) : ViewModel() {
+
+    private val reportId: Long = checkNotNull(savedStateHandle["reportId"])
 
     private val _uiState = MutableStateFlow(ReportDetailUiState())
     val uiState: StateFlow<ReportDetailUiState> = _uiState.asStateFlow()
 
     init {
+        loadReport()
+    }
+
+    fun loadReport() {
         viewModelScope.launch {
-            _uiState.value = ReportDetailUiState(
-                report = repository.getLatestReport(),
-                isLoading = false,
-            )
+            runCatching { repository.getReport(reportId) }
+                .onSuccess { report ->
+                    _uiState.value = ReportDetailUiState(
+                        report = report,
+                        isLoading = false,
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = ReportDetailUiState(
+                        isLoading = false,
+                        errorMessage = error.message ?: "报告加载失败",
+                    )
+                }
         }
     }
 }

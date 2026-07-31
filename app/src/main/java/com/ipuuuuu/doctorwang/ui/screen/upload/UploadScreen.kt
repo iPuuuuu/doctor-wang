@@ -21,7 +21,7 @@ import com.ipuuuuu.doctorwang.viewmodel.UploadViewModel
 
 @Composable
 fun UploadScreen(
-    onUploadSuccess: () -> Unit,
+    onUploadSuccess: (Long) -> Unit,
     viewModel: UploadViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -31,8 +31,9 @@ fun UploadScreen(
         viewModel.onFileSelected(result.data?.data)
     }
 
-    LaunchedEffect(uiState.uploadSuccess) {
-        if (uiState.uploadSuccess) onUploadSuccess()
+    LaunchedEffect(uiState.uploadSuccess, uiState.uploadedReportId) {
+        val reportId = uiState.uploadedReportId
+        if (uiState.uploadSuccess && reportId != null) onUploadSuccess(reportId)
     }
 
     Column(

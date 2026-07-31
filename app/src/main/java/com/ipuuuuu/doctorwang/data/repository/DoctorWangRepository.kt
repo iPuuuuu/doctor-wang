@@ -13,6 +13,6 @@ interface DoctorWangRepository {
     suspend fun getHealthProfile(): UserProfile
     suspend fun getHistoryMessages(): List<Message>
     suspend fun sendMessage(content: String, currentMessages: List<Message>): Result<Message>
-    suspend fun uploadReport(uri: Uri?): Result<MedicalReport>
-    suspend fun getLatestReport(): MedicalReport
+    suspend fun uploadReport(uri: Uri?): Result<Long>
+    suspend fun getReport(reportId: Long): MedicalReport
 }

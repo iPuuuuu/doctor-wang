@@ -4,8 +4,8 @@ import android.net.Uri
 import com.ipuuuuu.doctorwang.data.model.HealthRecord
 import com.ipuuuuu.doctorwang.data.model.MedicalReport
 import com.ipuuuuu.doctorwang.data.model.Message
-import com.ipuuuuu.doctorwang.data.model.UserProfile
 import com.ipuuuuu.doctorwang.data.model.MessageStatus
+import com.ipuuuuu.doctorwang.data.model.UserProfile
 import com.ipuuuuu.doctorwang.storage.SessionManager
 import kotlinx.coroutines.delay
 import javax.inject.Inject
@@ -97,26 +97,26 @@ class FakeDoctorWangRepository @Inject constructor(
                 role = "assistant",
                 timestamp = System.currentTimeMillis(),
                 status = MessageStatus.SENT,
-            )
+            ),
         )
     }
 
-    override suspend fun uploadReport(uri: Uri?): Result<MedicalReport> {
+    override suspend fun uploadReport(uri: Uri?): Result<Long> {
         delay(1200)
         val fileName = uri?.lastPathSegment?.substringAfterLast('/') ?: "检查报告"
         latestReport = latestReport.copy(
             reportId = 10002,
             title = fileName,
-            date = "2026-07-30",
+            date = "2026-07-31",
             summary = "AI 已完成对上传资料的初步解析。",
             findings = listOf("轻度脂肪肝", "建议结合肝功能结果复查"),
             suggestions = listOf("避免油腻饮食", "控制体重", "1-3 个月内复查"),
         )
-        return Result.success(latestReport)
+        return Result.success(latestReport.reportId)
     }
 
-    override suspend fun getLatestReport(): MedicalReport {
+    override suspend fun getReport(reportId: Long): MedicalReport {
         delay(150)
-        return latestReport
+        return latestReport.copy(reportId = reportId)
     }
 }

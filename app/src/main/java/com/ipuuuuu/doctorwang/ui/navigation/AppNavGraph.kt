@@ -2,8 +2,10 @@ package com.ipuuuuu.doctorwang.ui.navigation
 
 import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.navArgument
 import com.ipuuuuu.doctorwang.ui.screen.auth.LoginScreen
 import com.ipuuuuu.doctorwang.ui.screen.chat.ChatScreen
 import com.ipuuuuu.doctorwang.ui.screen.home.HomeScreen
@@ -39,7 +41,7 @@ fun AppNavGraph(navController: NavHostController) {
                     navController.navigate(Screen.Home.route) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
-                }
+                },
             )
         }
         composable(Screen.Home.route) {
@@ -54,9 +56,16 @@ fun AppNavGraph(navController: NavHostController) {
             ChatScreen(onUploadClick = { navController.navigate(Screen.Upload.route) })
         }
         composable(Screen.Upload.route) {
-            UploadScreen(onUploadSuccess = { navController.navigate(Screen.ReportDetail.route) })
+            UploadScreen(
+                onUploadSuccess = { reportId ->
+                    navController.navigate(Screen.ReportDetail.createRoute(reportId))
+                },
+            )
         }
-        composable(Screen.ReportDetail.route) {
+        composable(
+            route = Screen.ReportDetail.route,
+            arguments = listOf(navArgument("reportId") { type = NavType.LongType }),
+        ) {
             ReportDetailScreen()
         }
         composable(Screen.Profile.route) {
@@ -68,7 +77,7 @@ fun AppNavGraph(navController: NavHostController) {
                     navController.navigate(Screen.Login.route) {
                         popUpTo(Screen.Home.route) { inclusive = true }
                     }
-                }
+                },
             )
         }
     }

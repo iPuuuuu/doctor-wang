@@ -22,13 +22,26 @@ fun ReportDetailScreen(viewModel: ReportDetailViewModel = hiltViewModel()) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val report = uiState.report
 
-    if (uiState.isLoading || report == null) {
+    if (uiState.isLoading) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CircularProgressIndicator()
+        }
+        return
+    }
+
+    if (uiState.errorMessage != null || report == null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(text = uiState.errorMessage ?: "报告加载失败", color = MaterialTheme.colorScheme.error)
         }
         return
     }
@@ -40,6 +53,7 @@ fun ReportDetailScreen(viewModel: ReportDetailViewModel = hiltViewModel()) {
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
+            Text(text = "检查报告", style = MaterialTheme.typography.titleMedium)
             Text(text = report.title, style = MaterialTheme.typography.headlineSmall)
             Text(text = "${report.date} · ${report.type}")
         }

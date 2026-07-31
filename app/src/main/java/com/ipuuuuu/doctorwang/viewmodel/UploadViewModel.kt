@@ -3,7 +3,6 @@ package com.ipuuuuu.doctorwang.viewmodel
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.ipuuuuu.doctorwang.data.model.MedicalReport
 import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
@@ -16,8 +15,8 @@ data class UploadUiState(
     val selectedUri: Uri? = null,
     val isUploading: Boolean = false,
     val uploadSuccess: Boolean = false,
+    val uploadedReportId: Long? = null,
     val errorMessage: String? = null,
-    val uploadedReport: MedicalReport? = null,
 )
 
 @HiltViewModel
@@ -29,7 +28,12 @@ class UploadViewModel @Inject constructor(
     val uiState: StateFlow<UploadUiState> = _uiState.asStateFlow()
 
     fun onFileSelected(uri: Uri?) {
-        _uiState.value = _uiState.value.copy(selectedUri = uri, errorMessage = null, uploadSuccess = false)
+        _uiState.value = _uiState.value.copy(
+            selectedUri = uri,
+            errorMessage = null,
+            uploadSuccess = false,
+            uploadedReportId = null,
+        )
     }
 
     fun upload() {
@@ -41,11 +45,11 @@ class UploadViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isUploading = true, errorMessage = null)
             repository.uploadReport(uri)
-                .onSuccess { report ->
+                .onSuccess { reportId ->
                     _uiState.value = _uiState.value.copy(
                         isUploading = false,
                         uploadSuccess = true,
-                        uploadedReport = report,
+                        uploadedReportId = reportId,
                     )
                 }
                 .onFailure { error ->

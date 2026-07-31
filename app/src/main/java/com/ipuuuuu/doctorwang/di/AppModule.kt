@@ -1,10 +1,13 @@
 package com.ipuuuuu.doctorwang.di
 
+import android.content.ContentResolver
 import android.content.Context
 import androidx.room.Room
+import com.ipuuuuu.doctorwang.data.api.DoctorWangApi
 import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
-import com.ipuuuuu.doctorwang.data.repository.FakeDoctorWangRepository
+import com.ipuuuuu.doctorwang.data.repository.RemoteDoctorWangRepository
 import com.ipuuuuu.doctorwang.database.DoctorWangDatabase
+import com.ipuuuuu.doctorwang.network.NetworkProvider
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -19,7 +22,7 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindDoctorWangRepository(
-        repository: FakeDoctorWangRepository,
+        repository: RemoteDoctorWangRepository,
     ): DoctorWangRepository
 }
 
@@ -35,4 +38,11 @@ object AppModule {
             "doctor_wang.db",
         ).build()
     }
+
+    @Provides
+    @Singleton
+    fun provideDoctorWangApi(networkProvider: NetworkProvider): DoctorWangApi = networkProvider.api
+
+    @Provides
+    fun provideContentResolver(@ApplicationContext context: Context): ContentResolver = context.contentResolver
 }
