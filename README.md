@@ -1,5 +1,98 @@
 # Doctor-Wang Android 项目完整实现计划书
 
+## 当前可运行 Demo 使用说明
+
+### 1. APK 输出路径
+Android debug APK 构建完成后，默认输出到：
+
+```text
+app/build/outputs/apk/debug/app-debug.apk
+```
+
+在当前仓库绝对路径下对应为：
+
+```text
+C:\Users\wmh\Desktop\doctor-wang\app\build\outputs\apk\debug\app-debug.apk
+```
+
+### 2. 安装到手机
+1. 先在 Android Studio 或命令行执行 debug 构建：
+
+```bat
+.\gradlew.bat assembleDebug
+```
+
+2. 构建完成后，把 `app-debug.apk` 发到手机，或用数据线执行：
+
+```bat
+adb install -r app\build\outputs\apk\debug\app-debug.apk
+```
+
+3. 如果手机首次安装 APK，被系统拦截，请在手机里允许“安装未知来源应用”。
+
+### 3. 启动本地 mock backend
+后端目录：
+
+```text
+doctor-wang-mock-server
+```
+
+启动命令：
+
+```bat
+cd doctor-wang-mock-server
+.\gradlew.bat bootRun
+```
+
+或者直接双击：
+
+```bat
+doctor-wang-mock-server\start-mock-server.bat
+```
+
+默认端口：
+
+```text
+http://127.0.0.1:8080/
+```
+
+并且已经监听局域网地址 `0.0.0.0:8080`，所以同一 Wi‑Fi 下的手机可以访问你电脑上的 mock 服务。
+
+### 4. 真机联调步骤
+1. 电脑和手机连接同一个 Wi‑Fi。
+2. 启动 `doctor-wang-mock-server`。
+3. 在电脑命令行执行：
+
+```bat
+ipconfig
+```
+
+4. 找到当前网络对应的 IPv4 地址，例如 `192.168.1.10`。
+5. 打开手机上的 Doctor-Wang。
+6. 首次进入登录页时，会看到“先设置服务地址”的引导。
+7. 进入“服务设置”，把地址改成：
+
+```text
+http://<你的电脑局域网IP>:8080/
+```
+
+例如：
+
+```text
+http://192.168.1.10:8080/
+```
+
+8. 点击“保存服务地址”。
+9. 点击“测试连接”。
+10. 连接成功后即可继续登录、查看健康档案、上传报告、查看分析结果、进行 AI 聊天演示。
+
+### 5. 模拟器与真机地址说明
+- Android 模拟器默认可用：`http://10.0.2.2:8080/`
+- Android 真机不能使用 `10.0.2.2`
+- 真机必须改成你电脑的局域网 IP，例如：`http://192.168.1.10:8080/`
+
+---
+
 > 版本：v1.0  
 > 日期：2026-07-30  
 > 项目名称：Doctor-Wang  

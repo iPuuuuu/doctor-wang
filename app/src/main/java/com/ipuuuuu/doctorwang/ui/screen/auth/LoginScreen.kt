@@ -1,10 +1,13 @@
 package com.ipuuuuu.doctorwang.ui.screen.auth
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -21,6 +24,7 @@ import com.ipuuuuu.doctorwang.viewmodel.LoginViewModel
 @Composable
 fun LoginScreen(
     onLoginSuccess: () -> Unit,
+    onOpenSettings: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -37,6 +41,31 @@ fun LoginScreen(
     ) {
         Text(text = "Doctor-Wang", style = MaterialTheme.typography.headlineMedium)
         Text(text = "手机号或邮箱登录", style = MaterialTheme.typography.bodyMedium)
+
+        if (uiState.showServerGuide) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .background(
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        shape = RoundedCornerShape(16.dp),
+                    )
+                    .padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(text = "首次使用前请先设置服务地址", style = MaterialTheme.typography.titleMedium)
+                Text(text = "1. 先在电脑启动 mock backend\n2. 手机和电脑连接同一 Wi‑Fi\n3. 进入服务设置填写 http://<电脑IP>:8080/")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onOpenSettings, modifier = Modifier.weight(1f)) {
+                        Text("打开服务设置")
+                    }
+                    Button(onClick = viewModel::dismissServerGuide, modifier = Modifier.weight(1f)) {
+                        Text("我知道了")
+                    }
+                }
+            }
+        }
+
         Text(
             text = "演示账号可直接输入任意手机号/邮箱和密码。真机测试前，请先在设置页确认服务地址。",
             style = MaterialTheme.typography.bodySmall,

@@ -3,6 +3,7 @@ package com.ipuuuuu.doctorwang.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
+import com.ipuuuuu.doctorwang.storage.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,15 +17,23 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val loginSuccess: Boolean = false,
+    val showServerGuide: Boolean = false,
 )
 
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val repository: DoctorWangRepository,
+    private val sessionManager: SessionManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
+
+    init {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(showServerGuide = !sessionManager.hasSeenServerGuide())
+        }
+    }
 
     fun updateAccount(value: String) {
         _uiState.value = _uiState.value.copy(account = value, errorMessage = null)
@@ -32,6 +41,13 @@ class LoginViewModel @Inject constructor(
 
     fun updatePassword(value: String) {
         _uiState.value = _uiState.value.copy(password = value, errorMessage = null)
+    }
+
+    fun dismissServerGuide() {
+        viewModelScope.launch {
+            sessionManager.markServerGuideSeen()
+            _uiState.value = _uiState.value.copy(showServerGuide = false)
+        }
     }
 
     fun login() {

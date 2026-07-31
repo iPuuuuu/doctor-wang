@@ -23,6 +23,7 @@ class SessionManager @Inject constructor(
         val UserId = stringPreferencesKey("user_id")
         val LoggedIn = booleanPreferencesKey("logged_in")
         val ServerUrl = stringPreferencesKey("server_url")
+        val ServerGuideSeen = booleanPreferencesKey("server_guide_seen")
     }
 
     suspend fun saveSession(token: String, userId: String) {
@@ -52,6 +53,16 @@ class SessionManager @Inject constructor(
     suspend fun saveServerUrl(value: String) {
         context.dataStore.edit { preferences ->
             preferences[Keys.ServerUrl] = normalizeServerUrl(value)
+        }
+    }
+
+    suspend fun hasSeenServerGuide(): Boolean {
+        return context.dataStore.data.first()[Keys.ServerGuideSeen] == true
+    }
+
+    suspend fun markServerGuideSeen() {
+        context.dataStore.edit { preferences ->
+            preferences[Keys.ServerGuideSeen] = true
         }
     }
 

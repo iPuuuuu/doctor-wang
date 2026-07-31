@@ -42,6 +42,7 @@ fun AppNavGraph(navController: NavHostController) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
+                onOpenSettings = { navController.navigate(Screen.Settings.route) },
             )
         }
         composable(Screen.Home.route) {
@@ -75,7 +76,7 @@ fun AppNavGraph(navController: NavHostController) {
             SettingsScreen(
                 onLoggedOut = {
                     navController.navigate(Screen.Login.route) {
-                        popUpTo(Screen.Home.route) { inclusive = true }
+                        popUpTo(0) { inclusive = true }
                     }
                 },
             )
