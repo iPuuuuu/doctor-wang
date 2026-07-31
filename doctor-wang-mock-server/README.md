@@ -117,8 +117,9 @@ set DOCTOR_WANG_RELEASE_BASE_URL=https://your-domain.example/
 构建完成后，release APK 默认就会连接这个线上地址。
 
 ## 接口验证
-部署完成后，可以先用浏览器或 curl 验证这些接口：
+部署完成后，可以先用浏览器或 curl 验证这些地址：
 
+- `GET /healthz`
 - `GET /api/profile`
 - `GET /api/health/profile`
 - `POST /api/login`
@@ -129,7 +130,22 @@ set DOCTOR_WANG_RELEASE_BASE_URL=https://your-domain.example/
 例如：
 
 ```text
+https://your-domain.example/healthz
 https://your-domain.example/api/profile
+```
+
+## Render 部署示例
+仓库中已提供：
+
+```text
+render.yaml
+Dockerfile
+```
+
+你可以直接把 `doctor-wang-mock-server` 目录接入 Render，使用 Docker 方式部署，并把健康检查路径设为：
+
+```text
+/healthz
 ```
 
 ## 演示接口
