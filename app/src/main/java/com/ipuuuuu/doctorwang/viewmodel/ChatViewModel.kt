@@ -16,6 +16,7 @@ data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val input: String = "",
     val isSending: Boolean = false,
+    val isLoading: Boolean = true,
     val errorMessage: String? = null,
 )
 
@@ -29,7 +30,16 @@ class ChatViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(messages = repository.getHistoryMessages())
+            runCatching { repository.getHistoryMessages() }
+                .onSuccess { messages ->
+                    _uiState.value = _uiState.value.copy(messages = messages, isLoading = false)
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        errorMessage = error.message ?: "聊天记录加载失败",
+                    )
+                }
         }
     }
 

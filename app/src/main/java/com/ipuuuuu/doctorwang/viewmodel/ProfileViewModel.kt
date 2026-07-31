@@ -14,6 +14,7 @@ import kotlinx.coroutines.launch
 data class ProfileUiState(
     val profile: UserProfile? = null,
     val isLoading: Boolean = true,
+    val errorMessage: String? = null,
 )
 
 @HiltViewModel
@@ -25,11 +26,24 @@ class ProfileViewModel @Inject constructor(
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
     init {
+        refresh()
+    }
+
+    fun refresh() {
         viewModelScope.launch {
-            _uiState.value = ProfileUiState(
-                profile = repository.getHealthProfile(),
-                isLoading = false,
-            )
+            runCatching { repository.getHealthProfile() }
+                .onSuccess { profile ->
+                    _uiState.value = ProfileUiState(
+                        profile = profile,
+                        isLoading = false,
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = ProfileUiState(
+                        isLoading = false,
+                        errorMessage = error.message ?: "健康档案加载失败",
+                    )
+                }
         }
     }
 }

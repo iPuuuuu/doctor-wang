@@ -21,6 +21,7 @@ data class HomeUiState(
     val recentRecordText: String = "暂无检查记录",
     val historyMessages: List<Message> = emptyList(),
     val isLoading: Boolean = true,
+    val errorMessage: String? = null,
 )
 
 @HiltViewModel
@@ -37,24 +38,33 @@ class HomeViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true)
-            val profile = repository.getProfile()
-            val messages = repository.getHistoryMessages()
-            val bmi = profile.weight / ((profile.height / 100f) * (profile.height / 100f))
-            val summary = profile.historyDiseases.firstOrNull() ?: "暂无异常"
-            val recentRecord = profile.records.firstOrNull()?.let { "${it.date} ${it.type}" } ?: "暂无检查记录"
-            _uiState.value = HomeUiState(
-                userName = profile.name,
-                bmiText = String.format("%.1f", bmi),
-                statusSummary = when {
-                    bmi > HEALTHY_BMI_MAX -> "$summary · BMI偏高"
-                    bmi < HEALTHY_BMI_MIN -> "$summary · BMI偏低"
-                    else -> summary
-                },
-                recentRecordText = recentRecord,
-                historyMessages = messages,
-                isLoading = false,
-            )
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            runCatching {
+                val profile = repository.getProfile()
+                val messages = repository.getHistoryMessages()
+                val bmi = profile.weight / ((profile.height / 100f) * (profile.height / 100f))
+                val summary = profile.historyDiseases.firstOrNull() ?: "暂无异常"
+                val recentRecord = profile.records.firstOrNull()?.let { "${it.date} ${it.type}" } ?: "暂无检查记录"
+                HomeUiState(
+                    userName = profile.name,
+                    bmiText = String.format("%.1f", bmi),
+                    statusSummary = when {
+                        bmi > HEALTHY_BMI_MAX -> "$summary · BMI偏高"
+                        bmi < HEALTHY_BMI_MIN -> "$summary · BMI偏低"
+                        else -> summary
+                    },
+                    recentRecordText = recentRecord,
+                    historyMessages = messages,
+                    isLoading = false,
+                )
+            }.onSuccess { state ->
+                _uiState.value = state
+            }.onFailure { error ->
+                _uiState.value = HomeUiState(
+                    isLoading = false,
+                    errorMessage = error.message ?: "首页加载失败",
+                )
+            }
         }
     }
 }

@@ -7,7 +7,9 @@
         android:name=".DoctorWangApplication"
         android:allowBackup="true"
         android:label="Doctor-Wang"
+        android:networkSecurityConfig="@xml/network_security_config"
         android:supportsRtl="true"
+        android:usesCleartextTraffic="true"
         android:theme="@style/Theme.DoctorWang">
         <activity
             android:name=".MainActivity"

@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -42,6 +43,9 @@ fun ReportDetailScreen(viewModel: ReportDetailViewModel = hiltViewModel()) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(text = uiState.errorMessage ?: "报告加载失败", color = MaterialTheme.colorScheme.error)
+            Button(onClick = viewModel::loadReport, modifier = Modifier.padding(top = 12.dp)) {
+                Text("重试")
+            }
         }
         return
     }

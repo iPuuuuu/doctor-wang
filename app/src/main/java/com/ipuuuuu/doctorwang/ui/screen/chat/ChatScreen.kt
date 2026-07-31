@@ -9,10 +9,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -34,12 +36,23 @@ fun ChatScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Text(text = "AI 问诊", style = MaterialTheme.typography.headlineSmall)
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            items(uiState.messages, key = { it.id }) { message ->
-                MessageBubble(message = message)
+        Text(text = "你可以直接输入“胃疼”“头疼”等问题进行演示。", style = MaterialTheme.typography.bodySmall)
+        if (uiState.isLoading) {
+            Column(
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                verticalArrangement = Arrangement.Center,
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                CircularProgressIndicator()
+            }
+        } else {
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                items(uiState.messages, key = { it.id }) { message ->
+                    MessageBubble(message = message)
+                }
             }
         }
         uiState.errorMessage?.let {
@@ -57,7 +70,7 @@ fun ChatScreen(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Button(onClick = viewModel::sendMessage, modifier = Modifier.weight(1f)) {
+            Button(onClick = viewModel::sendMessage, modifier = Modifier.weight(1f), enabled = !uiState.isSending) {
                 Text(if (uiState.isSending) "发送中..." else "发送")
             }
             Button(onClick = onUploadClick, modifier = Modifier.weight(1f)) {

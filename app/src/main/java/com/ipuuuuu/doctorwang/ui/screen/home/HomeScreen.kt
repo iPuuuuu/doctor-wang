@@ -8,9 +8,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -40,6 +41,22 @@ fun HomeScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CircularProgressIndicator()
+        }
+        return
+    }
+
+    if (uiState.errorMessage != null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(text = uiState.errorMessage, color = MaterialTheme.colorScheme.error)
+            Button(onClick = viewModel::refresh, modifier = Modifier.padding(top = 12.dp)) {
+                Text("重新加载")
+            }
         }
         return
     }
@@ -86,7 +103,7 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 HomeEntryCard(title = "❤️ 健康档案", onClick = onProfileClick, modifier = Modifier.weight(1f))
-                HomeEntryCard(title = "🏥 就医助手", onClick = onSettingsClick, modifier = Modifier.weight(1f))
+                HomeEntryCard(title = "🏥 服务设置", onClick = onSettingsClick, modifier = Modifier.weight(1f))
             }
         }
         item {

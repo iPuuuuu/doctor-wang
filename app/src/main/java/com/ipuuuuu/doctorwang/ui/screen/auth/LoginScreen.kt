@@ -37,6 +37,10 @@ fun LoginScreen(
     ) {
         Text(text = "Doctor-Wang", style = MaterialTheme.typography.headlineMedium)
         Text(text = "手机号或邮箱登录", style = MaterialTheme.typography.bodyMedium)
+        Text(
+            text = "演示账号可直接输入任意手机号/邮箱和密码。真机测试前，请先在设置页确认服务地址。",
+            style = MaterialTheme.typography.bodySmall,
+        )
 
         OutlinedTextField(
             value = uiState.account,

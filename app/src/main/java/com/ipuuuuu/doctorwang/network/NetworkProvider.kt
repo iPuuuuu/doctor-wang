@@ -24,9 +24,9 @@ class NetworkProvider @Inject constructor() {
         .addInterceptor(loggingInterceptor)
         .build()
 
-    val api: DoctorWangApi by lazy {
-        Retrofit.Builder()
-            .baseUrl("http://10.0.2.2:8080/")
+    fun createApi(baseUrl: String): DoctorWangApi {
+        return Retrofit.Builder()
+            .baseUrl(baseUrl)
             .client(okHttpClient)
             .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
             .build()

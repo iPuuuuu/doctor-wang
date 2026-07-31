@@ -44,7 +44,7 @@ fun UploadScreen(
     ) {
         Text(text = "上传医疗资料", style = MaterialTheme.typography.headlineSmall)
         Text(text = "支持 PDF / JPG / PNG")
-        Text(text = "已选择：${uiState.selectedUri ?: "未选择文件"}")
+        Text(text = "已选择：${uiState.selectedUri?.lastPathSegment?.substringAfterLast('/') ?: "未选择文件"}")
         uiState.errorMessage?.let {
             Text(text = it, color = MaterialTheme.colorScheme.error)
         }

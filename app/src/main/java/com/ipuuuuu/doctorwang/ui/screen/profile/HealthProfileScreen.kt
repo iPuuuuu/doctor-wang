@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -22,13 +23,29 @@ fun HealthProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val profile = uiState.profile
 
-    if (uiState.isLoading || profile == null) {
+    if (uiState.isLoading) {
         Column(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             CircularProgressIndicator()
+        }
+        return
+    }
+
+    if (uiState.errorMessage != null || profile == null) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(20.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(text = uiState.errorMessage ?: "健康档案加载失败", color = MaterialTheme.colorScheme.error)
+            Button(onClick = viewModel::refresh, modifier = Modifier.padding(top = 12.dp)) {
+                Text("重新加载")
+            }
         }
         return
     }

@@ -4,7 +4,6 @@ import android.content.ContentResolver
 import android.net.Uri
 import android.provider.OpenableColumns
 import com.ipuuuuu.doctorwang.data.api.ChatRequest
-import com.ipuuuuu.doctorwang.data.api.DoctorWangApi
 import com.ipuuuuu.doctorwang.data.api.HealthRecordResponse
 import com.ipuuuuu.doctorwang.data.api.LoginRequest
 import com.ipuuuuu.doctorwang.data.api.MedicalReportResponse
@@ -15,13 +14,18 @@ import com.ipuuuuu.doctorwang.data.model.MedicalReport
 import com.ipuuuuu.doctorwang.data.model.Message
 import com.ipuuuuu.doctorwang.data.model.MessageStatus
 import com.ipuuuuu.doctorwang.data.model.UserProfile
+import com.ipuuuuu.doctorwang.network.NetworkProvider
 import com.ipuuuuu.doctorwang.storage.SessionManager
+import java.io.IOException
+import java.net.ConnectException
+import java.net.SocketTimeoutException
 import javax.inject.Inject
 import javax.inject.Singleton
+import retrofit2.HttpException
 
 @Singleton
 class RemoteDoctorWangRepository @Inject constructor(
-    private val api: DoctorWangApi,
+    private val networkProvider: NetworkProvider,
     private val sessionManager: SessionManager,
     private val contentResolver: ContentResolver,
 ) : DoctorWangRepository {
@@ -29,8 +33,8 @@ class RemoteDoctorWangRepository @Inject constructor(
     override suspend fun isLoggedIn(): Boolean = sessionManager.isLoggedIn()
 
     override suspend fun login(account: String, password: String): Result<Unit> {
-        return runCatching {
-            val response = api.login(LoginRequest(account = account, password = password))
+        return networkCall {
+            val response = api().login(LoginRequest(account = account, password = password))
             sessionManager.saveSession(token = response.token, userId = response.userId)
         }
     }
@@ -40,11 +44,11 @@ class RemoteDoctorWangRepository @Inject constructor(
     }
 
     override suspend fun getProfile(): UserProfile {
-        return api.getProfile().toDomain()
+        return networkCall { api().getProfile().toDomain() }.getOrThrow()
     }
 
     override suspend fun getHealthProfile(): UserProfile {
-        return api.getHealthProfile().toDomain()
+        return networkCall { api().getHealthProfile().toDomain() }.getOrThrow()
     }
 
     override suspend fun getHistoryMessages(): List<Message> {
@@ -65,8 +69,8 @@ class RemoteDoctorWangRepository @Inject constructor(
     }
 
     override suspend fun sendMessage(content: String, currentMessages: List<Message>): Result<Message> {
-        return runCatching {
-            val response = api.chat(ChatRequest(message = content))
+        return networkCall {
+            val response = api().chat(ChatRequest(message = content))
             Message(
                 id = "assistant-${currentMessages.size + 1}",
                 content = response.answer,
@@ -79,13 +83,29 @@ class RemoteDoctorWangRepository @Inject constructor(
 
     override suspend fun uploadReport(uri: Uri?): Result<Long> {
         val fileName = resolveFileName(uri)
-        return runCatching {
-            api.uploadReport(UploadRequest(fileName = fileName)).reportId
+        return networkCall {
+            api().uploadReport(UploadRequest(fileName = fileName)).reportId
         }
     }
 
     override suspend fun getReport(reportId: Long): MedicalReport {
-        return api.getReport(reportId).toDomain()
+        return networkCall { api().getReport(reportId).toDomain() }.getOrThrow()
+    }
+
+    suspend fun getServerUrl(): String = sessionManager.getServerUrl()
+
+    suspend fun saveServerUrl(value: String) {
+        sessionManager.saveServerUrl(value)
+    }
+
+    suspend fun testConnection(): Result<Unit> {
+        return networkCall { api().getProfile(); Unit }
+    }
+
+    private suspend fun api() = networkProvider.createApi(sessionManager.getServerUrl())
+
+    private inline fun <T> networkCall(block: () -> T): Result<T> {
+        return runCatching(block).mapError(::mapNetworkError)
     }
 
     private fun resolveFileName(uri: Uri?): String {
@@ -101,6 +121,28 @@ class RemoteDoctorWangRepository @Inject constructor(
         }
         return uri.lastPathSegment?.substringAfterLast('/') ?: "检查报告"
     }
+
+    private fun mapNetworkError(error: Throwable): Throwable {
+        return when (error) {
+            is ConnectException, is SocketTimeoutException -> IOException(
+                "无法连接到 Doctor-Wang 本地服务，请确认电脑端 mock server 已启动，并与手机处于同一 Wi‑Fi。",
+                error,
+            )
+            is HttpException -> IOException("服务请求失败（${error.code()}），请稍后重试。", error)
+            is IOException -> IOException(
+                "网络请求失败，请确认服务地址填写正确，并检查手机与电脑网络连接。",
+                error,
+            )
+            else -> error
+        }
+    }
+}
+
+private inline fun <T> Result<T>.mapError(transform: (Throwable) -> Throwable): Result<T> {
+    return fold(
+        onSuccess = { Result.success(it) },
+        onFailure = { Result.failure(transform(it)) },
+    )
 }
 
 private fun UserProfileResponse.toDomain(): UserProfile {

@@ -12,6 +12,8 @@ import javax.inject.Singleton
 
 private val Context.dataStore by preferencesDataStore(name = "doctor_wang_session")
 
+const val DEFAULT_SERVER_URL = "http://10.0.2.2:8080/"
+
 @Singleton
 class SessionManager @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -20,6 +22,7 @@ class SessionManager @Inject constructor(
         val Token = stringPreferencesKey("token")
         val UserId = stringPreferencesKey("user_id")
         val LoggedIn = booleanPreferencesKey("logged_in")
+        val ServerUrl = stringPreferencesKey("server_url")
     }
 
     suspend fun saveSession(token: String, userId: String) {
@@ -32,11 +35,29 @@ class SessionManager @Inject constructor(
 
     suspend fun clearSession() {
         context.dataStore.edit { preferences ->
+            val serverUrl = preferences[Keys.ServerUrl]
             preferences.clear()
+            serverUrl?.let { preferences[Keys.ServerUrl] = it }
         }
     }
 
     suspend fun isLoggedIn(): Boolean {
         return context.dataStore.data.first()[Keys.LoggedIn] == true
+    }
+
+    suspend fun getServerUrl(): String {
+        return normalizeServerUrl(context.dataStore.data.first()[Keys.ServerUrl] ?: DEFAULT_SERVER_URL)
+    }
+
+    suspend fun saveServerUrl(value: String) {
+        context.dataStore.edit { preferences ->
+            preferences[Keys.ServerUrl] = normalizeServerUrl(value)
+        }
+    }
+
+    private fun normalizeServerUrl(value: String): String {
+        val trimmed = value.trim()
+        if (trimmed.isEmpty()) return DEFAULT_SERVER_URL
+        return if (trimmed.endsWith('/')) trimmed else "$trimmed/"
     }
 }
