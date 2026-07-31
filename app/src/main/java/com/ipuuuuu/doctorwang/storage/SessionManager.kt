@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
+import com.ipuuuuu.doctorwang.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.first
 import javax.inject.Inject
@@ -12,7 +13,8 @@ import javax.inject.Singleton
 
 private val Context.dataStore by preferencesDataStore(name = "doctor_wang_session")
 
-const val DEFAULT_SERVER_URL = "http://10.0.2.2:8080/"
+const val LOCAL_DEBUG_SERVER_URL = "http://10.0.2.2:8080/"
+const val DEMO_SERVER_PLACEHOLDER_URL = "https://doctor-wang-demo.example.com/"
 
 @Singleton
 class SessionManager @Inject constructor(
@@ -47,7 +49,7 @@ class SessionManager @Inject constructor(
     }
 
     suspend fun getServerUrl(): String {
-        return normalizeServerUrl(context.dataStore.data.first()[Keys.ServerUrl] ?: DEFAULT_SERVER_URL)
+        return normalizeServerUrl(context.dataStore.data.first()[Keys.ServerUrl] ?: defaultServerUrl())
     }
 
     suspend fun saveServerUrl(value: String) {
@@ -66,9 +68,15 @@ class SessionManager @Inject constructor(
         }
     }
 
+    fun defaultServerUrl(): String = normalizeServerUrl(BuildConfig.DEFAULT_SERVER_URL)
+
+    fun isUsingHostedDefault(): Boolean = BuildConfig.IS_DEMO_SERVER_CONFIGURED
+
+    fun currentEnvironmentLabel(): String = BuildConfig.SERVER_ENVIRONMENT_LABEL
+
     private fun normalizeServerUrl(value: String): String {
         val trimmed = value.trim()
-        if (trimmed.isEmpty()) return DEFAULT_SERVER_URL
+        if (trimmed.isEmpty()) return BuildConfig.DEFAULT_SERVER_URL
         return if (trimmed.endsWith('/')) trimmed else "$trimmed/"
     }
 }

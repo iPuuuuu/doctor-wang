@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
 import com.ipuuuuu.doctorwang.data.repository.RemoteDoctorWangRepository
+import com.ipuuuuu.doctorwang.storage.SessionManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,6 +14,9 @@ import kotlinx.coroutines.launch
 
 data class SettingsUiState(
     val serverUrl: String = "",
+    val defaultServerUrl: String = "",
+    val environmentLabel: String = "",
+    val isHostedDefaultConfigured: Boolean = false,
     val isSaving: Boolean = false,
     val isTestingConnection: Boolean = false,
     val isLoggingOut: Boolean = false,
@@ -25,6 +29,7 @@ data class SettingsUiState(
 class SettingsViewModel @Inject constructor(
     private val repository: DoctorWangRepository,
     private val remoteRepository: RemoteDoctorWangRepository,
+    private val sessionManager: SessionManager,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SettingsUiState())
@@ -32,7 +37,12 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(serverUrl = remoteRepository.getServerUrl())
+            _uiState.value = _uiState.value.copy(
+                serverUrl = remoteRepository.getServerUrl(),
+                defaultServerUrl = sessionManager.defaultServerUrl(),
+                environmentLabel = sessionManager.currentEnvironmentLabel(),
+                isHostedDefaultConfigured = sessionManager.isUsingHostedDefault(),
+            )
         }
     }
 
@@ -66,7 +76,7 @@ class SettingsViewModel @Inject constructor(
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(
                         isTestingConnection = false,
-                        connectionMessage = "连接成功，可以在手机上继续使用。",
+                        connectionMessage = "连接成功，可以继续使用 Doctor-Wang。",
                     )
                 }
                 .onFailure { error ->

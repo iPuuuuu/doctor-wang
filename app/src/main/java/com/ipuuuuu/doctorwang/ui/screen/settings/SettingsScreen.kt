@@ -20,7 +20,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.ipuuuuu.doctorwang.storage.DEFAULT_SERVER_URL
+import com.ipuuuuu.doctorwang.storage.DEMO_SERVER_PLACEHOLDER_URL
+import com.ipuuuuu.doctorwang.storage.LOCAL_DEBUG_SERVER_URL
 import com.ipuuuuu.doctorwang.viewmodel.SettingsViewModel
 
 @Composable
@@ -41,7 +42,7 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(text = "服务设置", style = MaterialTheme.typography.headlineSmall)
-        Text(text = "手机真机测试时，请把这里改成你电脑的局域网地址，例如 http://192.168.1.10:8080/")
+        Text(text = "当前默认环境：${uiState.environmentLabel}")
 
         Card(
             modifier = Modifier.fillMaxWidth(),
@@ -52,9 +53,15 @@ fun SettingsScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(text = "连接说明", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                Text(text = "模拟器默认地址：$DEFAULT_SERVER_URL")
-                Text(text = "真机推荐格式：http://<你的电脑局域网IP>:8080/")
-                Text(text = "请确认：电脑 mock server 已启动，手机与电脑在同一 Wi‑Fi。")
+                Text(text = "当前构建默认地址：${uiState.defaultServerUrl}")
+                Text(text = "本地调试推荐：$LOCAL_DEBUG_SERVER_URL")
+                Text(text = "线上演示发布时，请在构建阶段把默认地址改成真实 HTTPS 域名。")
+                if (!uiState.isHostedDefaultConfigured && uiState.defaultServerUrl == DEMO_SERVER_PLACEHOLDER_URL) {
+                    Text(
+                        text = "当前 release 默认地址仍是占位域名，正式发布前请通过 doctorWangReleaseBaseUrl 或 DOCTOR_WANG_RELEASE_BASE_URL 注入真实后端地址。",
+                        color = MaterialTheme.colorScheme.error,
+                    )
+                }
             }
         }
 

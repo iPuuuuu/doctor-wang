@@ -1,6 +1,7 @@
 server:
-  address: 0.0.0.0
-  port: 8080
+  address: ${SERVER_ADDRESS:0.0.0.0}
+  port: ${PORT:8080}
+  forward-headers-strategy: framework
   servlet:
     encoding:
       charset: UTF-8

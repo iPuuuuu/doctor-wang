@@ -15,8 +15,8 @@ app/build/outputs/apk/debug/app-debug.apk
 C:\Users\wmh\Desktop\doctor-wang\app\build\outputs\apk\debug\app-debug.apk
 ```
 
-### 2. 安装到手机
-1. 先在 Android Studio 或命令行执行 debug 构建：
+### 2. Debug 安装到手机
+1. 先执行 debug 构建：
 
 ```bat
 .\gradlew.bat assembleDebug
@@ -28,9 +28,22 @@ C:\Users\wmh\Desktop\doctor-wang\app\build\outputs\apk\debug\app-debug.apk
 adb install -r app\build\outputs\apk\debug\app-debug.apk
 ```
 
-3. 如果手机首次安装 APK，被系统拦截，请在手机里允许“安装未知来源应用”。
+3. 如果手机首次安装 APK 被系统拦截，请允许“安装未知来源应用”。
 
-### 3. 启动本地 mock backend
+### 3. 当前 Android 环境策略
+- `debug` 包默认连接：`http://10.0.2.2:8080/`
+- `release` 包默认连接：构建时注入的线上 HTTPS 地址
+- 如果没有注入 `doctorWangReleaseBaseUrl` / `DOCTOR_WANG_RELEASE_BASE_URL`，release 会落到占位域名：
+
+```text
+https://doctor-wang-demo.example.com/
+```
+
+这意味着：
+- 开发调试阶段继续使用本地 mock backend 最方便
+- 真正给用户安装使用前，应先把后端部署上线，再构建 release 包
+
+### 4. 本地 mock backend 启动方式
 后端目录：
 
 ```text
@@ -50,15 +63,13 @@ cd doctor-wang-mock-server
 doctor-wang-mock-server\start-mock-server.bat
 ```
 
-默认端口：
+默认本机访问地址：
 
 ```text
 http://127.0.0.1:8080/
 ```
 
-并且已经监听局域网地址 `0.0.0.0:8080`，所以同一 Wi‑Fi 下的手机可以访问你电脑上的 mock 服务。
-
-### 4. 真机联调步骤
+### 5. 本地真机联调步骤
 1. 电脑和手机连接同一个 Wi‑Fi。
 2. 启动 `doctor-wang-mock-server`。
 3. 在电脑命令行执行：
@@ -69,8 +80,7 @@ ipconfig
 
 4. 找到当前网络对应的 IPv4 地址，例如 `192.168.1.10`。
 5. 打开手机上的 Doctor-Wang。
-6. 首次进入登录页时，会看到“先设置服务地址”的引导。
-7. 进入“服务设置”，把地址改成：
+6. 进入“服务设置”，把地址改成：
 
 ```text
 http://<你的电脑局域网IP>:8080/
@@ -82,14 +92,32 @@ http://<你的电脑局域网IP>:8080/
 http://192.168.1.10:8080/
 ```
 
-8. 点击“保存服务地址”。
-9. 点击“测试连接”。
-10. 连接成功后即可继续登录、查看健康档案、上传报告、查看分析结果、进行 AI 聊天演示。
+7. 点击“保存服务地址”。
+8. 点击“测试连接”。
 
-### 5. 模拟器与真机地址说明
+### 6. 上线部署后的推荐发布方式
+推荐顺序：
+1. 先把 `doctor-wang-mock-server` 部署到公网可访问的 HTTPS 域名。
+2. 构建 Android release 时注入线上地址：
+
+```bat
+.\gradlew.bat assembleRelease -PdoctorWangReleaseBaseUrl=https://your-domain.example/
+```
+
+也可以用环境变量：
+
+```bat
+set DOCTOR_WANG_RELEASE_BASE_URL=https://your-domain.example/
+.\gradlew.bat assembleRelease
+```
+
+3. release 包构建完成后，APK 默认就会连接你配置的线上后端，普通用户安装后无需再手动填写局域网地址。
+
+### 7. 模拟器 / 真机 / 线上地址说明
 - Android 模拟器默认可用：`http://10.0.2.2:8080/`
 - Android 真机不能使用 `10.0.2.2`
-- 真机必须改成你电脑的局域网 IP，例如：`http://192.168.1.10:8080/`
+- 真机本地调试必须改成你电脑的局域网 IP，例如：`http://192.168.1.10:8080/`
+- 真正发布给用户时，推荐使用线上 HTTPS 地址，而不是局域网地址
 
 ---
 

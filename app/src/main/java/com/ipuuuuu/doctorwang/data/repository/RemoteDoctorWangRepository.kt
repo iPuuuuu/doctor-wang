@@ -125,12 +125,12 @@ class RemoteDoctorWangRepository @Inject constructor(
     private fun mapNetworkError(error: Throwable): Throwable {
         return when (error) {
             is ConnectException, is SocketTimeoutException -> IOException(
-                "无法连接到 Doctor-Wang 本地服务，请确认电脑端 mock server 已启动，并与手机处于同一 Wi‑Fi。",
+                "无法连接到 Doctor-Wang 服务，请确认当前服务地址可访问；本地调试时请检查 mock server 与网络连接。",
                 error,
             )
             is HttpException -> IOException("服务请求失败（${error.code()}），请稍后重试。", error)
             is IOException -> IOException(
-                "网络请求失败，请确认服务地址填写正确，并检查手机与电脑网络连接。",
+                "网络请求失败，请确认服务地址填写正确，或检查当前网络与后端服务状态。",
                 error,
             )
             else -> error

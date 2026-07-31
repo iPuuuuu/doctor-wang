@@ -8,6 +8,13 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
+val debugDefaultServerUrl = "http://10.0.2.2:8080/"
+val releaseDefaultServerUrl = providers
+    .gradleProperty("doctorWangReleaseBaseUrl")
+    .orElse(providers.environmentVariable("DOCTOR_WANG_RELEASE_BASE_URL"))
+    .orElse("https://doctor-wang-demo.example.com/")
+    .get()
+
 android {
     namespace = "com.ipuuuuu.doctorwang"
     compileSdk = 35
@@ -26,11 +33,23 @@ android {
     }
 
     buildTypes {
+        debug {
+            buildConfigField("String", "DEFAULT_SERVER_URL", "\"$debugDefaultServerUrl\"")
+            buildConfigField("String", "SERVER_ENVIRONMENT_LABEL", "\"本地调试环境\"")
+            buildConfigField("boolean", "IS_DEMO_SERVER_CONFIGURED", "false")
+        }
         release {
             isMinifyEnabled = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
+            )
+            buildConfigField("String", "DEFAULT_SERVER_URL", "\"$releaseDefaultServerUrl\"")
+            buildConfigField("String", "SERVER_ENVIRONMENT_LABEL", "\"线上演示环境\"")
+            buildConfigField(
+                "boolean",
+                "IS_DEMO_SERVER_CONFIGURED",
+                (releaseDefaultServerUrl != "https://doctor-wang-demo.example.com/").toString(),
             )
         }
     }
