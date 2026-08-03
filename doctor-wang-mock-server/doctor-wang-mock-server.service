@@ -6,6 +6,7 @@ Wants=network-online.target
 [Service]
 Type=simple
 WorkingDirectory=/opt/doctor-wang
+EnvironmentFile=-/etc/doctor-wang/doctor-wang.env
 Environment=PORT=8080
 Environment=SERVER_ADDRESS=0.0.0.0
 ExecStart=/usr/bin/java -jar /opt/doctor-wang/doctor-wang-mock-server-0.1.0.jar
