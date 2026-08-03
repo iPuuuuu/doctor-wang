@@ -3,7 +3,7 @@ package com.ipuuuuu.doctorwang.data.model
 enum class MessageStatus {
     SENT,
     SENDING,
-    ERROR,
+    FAILED,
 }
 
 data class Message(

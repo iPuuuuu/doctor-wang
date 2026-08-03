@@ -1,9 +1,6 @@
 package com.ipuuuuu.doctorwang.mock.service
 
-import com.fasterxml.jackson.core.type.TypeReference
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.ipuuuuu.doctorwang.mock.model.ChatRule
-import com.ipuuuuu.doctorwang.mock.model.ChatResponse
 import com.ipuuuuu.doctorwang.mock.model.MedicalReportResponse
 import com.ipuuuuu.doctorwang.mock.model.UploadResponse
 import com.ipuuuuu.doctorwang.mock.model.UserProfileResponse
@@ -17,29 +14,16 @@ class MockDataService(
 ) {
     private lateinit var profile: UserProfileResponse
     private lateinit var latestReport: MedicalReportResponse
-    private var chatRules: List<ChatRule> = emptyList()
 
     @PostConstruct
     fun load() {
         profile = readJson("mock-data/user.json")
         latestReport = readJson("mock-data/report.json")
-        chatRules = objectMapper.readValue(
-            ClassPathResource("mock-data/chat-rules.json").inputStream,
-            object : TypeReference<List<ChatRule>>() {},
-        )
     }
 
     fun getProfile(): UserProfileResponse = profile
 
     fun getHealthProfile(): UserProfileResponse = profile
-
-    fun answerQuestion(message: String): ChatResponse {
-        val rule = chatRules.firstOrNull { message.contains(it.keyword, ignoreCase = true) }
-        return ChatResponse(
-            answer = rule?.answer
-                ?: "我已经记录你的情况。建议结合既往病史继续观察，如症状持续或加重，请及时线下就医。",
-        )
-    }
 
     fun uploadReport(fileName: String): UploadResponse {
         latestReport = latestReport.copy(

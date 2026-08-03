@@ -40,7 +40,7 @@ fun LoginScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(text = "Doctor-Wang", style = MaterialTheme.typography.headlineMedium)
-        Text(text = "手机号或邮箱登录", style = MaterialTheme.typography.bodyMedium)
+        Text(text = if (uiState.isRegisterMode) "注册新账号" else "手机号或邮箱登录", style = MaterialTheme.typography.bodyMedium)
 
         if (uiState.showServerGuide) {
             Column(
@@ -67,7 +67,7 @@ fun LoginScreen(
         }
 
         Text(
-            text = "演示账号可直接输入任意手机号/邮箱和密码。真机测试前，请先在设置页确认服务地址。",
+            text = if (uiState.isRegisterMode) "账号支持手机号或邮箱；密码长度至少 8 位。" else "请输入已注册的账号和密码。",
             style = MaterialTheme.typography.bodySmall,
         )
 
@@ -96,8 +96,11 @@ fun LoginScreen(
             if (uiState.isLoading) {
                 CircularProgressIndicator()
             } else {
-                Text("登录")
+                Text(if (uiState.isRegisterMode) "注册并登录" else "登录")
             }
+        }
+        Button(onClick = viewModel::toggleRegisterMode, modifier = Modifier.fillMaxWidth()) {
+            Text(if (uiState.isRegisterMode) "已有账号，去登录" else "没有账号，注册新账号")
         }
     }
 }

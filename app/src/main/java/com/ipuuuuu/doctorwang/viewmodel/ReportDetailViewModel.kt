@@ -16,6 +16,8 @@ data class ReportDetailUiState(
     val report: MedicalReport? = null,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
+    val isDownloading: Boolean = false,
+    val downloadMessage: String? = null,
 )
 
 @HiltViewModel
@@ -37,15 +39,35 @@ class ReportDetailViewModel @Inject constructor(
         viewModelScope.launch {
             runCatching { repository.getReport(reportId) }
                 .onSuccess { report ->
-                    _uiState.value = ReportDetailUiState(
+                    _uiState.value = _uiState.value.copy(
                         report = report,
                         isLoading = false,
+                        errorMessage = null,
                     )
                 }
                 .onFailure { error ->
-                    _uiState.value = ReportDetailUiState(
+                    _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         errorMessage = error.message ?: "报告加载失败",
+                    )
+                }
+        }
+    }
+
+    fun downloadReport() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isDownloading = true, downloadMessage = null, errorMessage = null)
+            repository.downloadReport(reportId)
+                .onSuccess { download ->
+                    _uiState.value = _uiState.value.copy(
+                        isDownloading = false,
+                        downloadMessage = "下载完成：${download.fileName}（${download.bytes.size} bytes）",
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isDownloading = false,
+                        errorMessage = error.message ?: "下载失败",
                     )
                 }
         }

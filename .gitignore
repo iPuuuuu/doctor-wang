@@ -9,6 +9,9 @@ captures/
 .externalNativeBuild/
 .cxx/
 
+# Temporary local credentials used only during deployment
+.deploy/
+
 # Keystore
 *.jks
 *.keystore

@@ -34,6 +34,7 @@ fun HomeScreen(
     onUploadClick: () -> Unit,
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onReportListClick: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -97,7 +98,7 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f),
                 )
                 HomeEntryCard(
-                    title = "报告分析",
+                    title = "上传报告",
                     subtitle = "上传体检或检查报告",
                     accent = "📄",
                     onClick = onUploadClick,
@@ -111,17 +112,38 @@ fun HomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 HomeEntryCard(
+                    title = "我的病历",
+                    subtitle = "查看、删除上传记录",
+                    accent = "🗂️",
+                    onClick = onReportListClick,
+                    modifier = Modifier.weight(1f),
+                )
+                HomeEntryCard(
                     title = "健康档案",
                     subtitle = "查看病史与指标",
                     accent = "❤️",
                     onClick = onProfileClick,
                     modifier = Modifier.weight(1f),
                 )
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
                 HomeEntryCard(
                     title = "服务设置",
                     subtitle = "检查局域网连接状态",
                     accent = "📶",
                     onClick = onSettingsClick,
+                    modifier = Modifier.weight(1f),
+                )
+                HomeEntryCard(
+                    title = "上传说明",
+                    subtitle = "支持 PDF / JPG / PNG",
+                    accent = "ℹ️",
+                    onClick = onUploadClick,
                     modifier = Modifier.weight(1f),
                 )
             }

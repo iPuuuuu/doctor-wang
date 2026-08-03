@@ -5,6 +5,8 @@ import com.ipuuuuu.doctorwang.data.model.HealthRecord
 import com.ipuuuuu.doctorwang.data.model.MedicalReport
 import com.ipuuuuu.doctorwang.data.model.Message
 import com.ipuuuuu.doctorwang.data.model.MessageStatus
+import com.ipuuuuu.doctorwang.data.model.ReportDownload
+import com.ipuuuuu.doctorwang.data.model.ReportListItem
 import com.ipuuuuu.doctorwang.data.model.UserProfile
 import com.ipuuuuu.doctorwang.storage.SessionManager
 import kotlinx.coroutines.delay
@@ -29,14 +31,16 @@ class FakeDoctorWangRepository @Inject constructor(
         ),
     )
 
-    private var latestReport = MedicalReport(
-        reportId = 10001,
-        title = "腹部超声",
-        date = "2026-06-17",
-        type = "影像报告",
-        summary = "AI 初步判断存在轻度脂肪肝倾向。",
-        findings = listOf("轻度脂肪肝"),
-        suggestions = listOf("控制体重", "规律饮食", "复查肝功能"),
+    private val reports = mutableListOf(
+        MedicalReport(
+            reportId = 10001,
+            title = "腹部超声",
+            date = "2026-06-17",
+            type = "影像报告",
+            summary = "AI 初步判断存在轻度脂肪肝倾向。",
+            findings = listOf("轻度脂肪肝"),
+            suggestions = listOf("控制体重", "规律饮食", "复查肝功能"),
+        ),
     )
 
     override suspend fun isLoggedIn(): Boolean = sessionManager.isLoggedIn()
@@ -51,6 +55,8 @@ class FakeDoctorWangRepository @Inject constructor(
         }
     }
 
+    override suspend fun register(account: String, password: String): Result<Unit> = login(account, password)
+
     override suspend fun logout() {
         sessionManager.clearSession()
     }
@@ -64,6 +70,8 @@ class FakeDoctorWangRepository @Inject constructor(
         delay(250)
         return profile
     }
+
+    override suspend fun updateProfile(profile: UserProfile): Result<UserProfile> = Result.success(profile)
 
     override suspend fun getHistoryMessages(): List<Message> {
         delay(200)
@@ -104,19 +112,55 @@ class FakeDoctorWangRepository @Inject constructor(
     override suspend fun uploadReport(uri: Uri?): Result<Long> {
         delay(1200)
         val fileName = uri?.lastPathSegment?.substringAfterLast('/') ?: "检查报告"
-        latestReport = latestReport.copy(
-            reportId = 10002,
+        val report = MedicalReport(
+            reportId = (reports.maxOfOrNull { it.reportId } ?: 10001) + 1,
             title = fileName,
             date = "2026-07-31",
+            type = "影像报告",
             summary = "AI 已完成对上传资料的初步解析。",
             findings = listOf("轻度脂肪肝", "建议结合肝功能结果复查"),
             suggestions = listOf("避免油腻饮食", "控制体重", "1-3 个月内复查"),
         )
-        return Result.success(latestReport.reportId)
+        reports.add(0, report)
+        return Result.success(report.reportId)
+    }
+
+    override suspend fun listReports(): Result<List<ReportListItem>> {
+        delay(200)
+        return Result.success(
+            reports.map {
+                ReportListItem(
+                    reportId = it.reportId,
+                    title = it.title,
+                    date = it.date,
+                    type = it.type,
+                    status = "analyzed",
+                )
+            },
+        )
+    }
+
+    override suspend fun deleteReport(reportId: Long): Result<Unit> {
+        delay(200)
+        val removed = reports.removeAll { it.reportId == reportId }
+        return if (removed) Result.success(Unit) else Result.failure(IllegalArgumentException("报告不存在"))
+    }
+
+    override suspend fun downloadReport(reportId: Long): Result<ReportDownload> {
+        delay(150)
+        val report = reports.firstOrNull { it.reportId == reportId }
+            ?: return Result.failure(IllegalArgumentException("报告不存在"))
+        return Result.success(
+            ReportDownload(
+                fileName = "${report.title}.txt",
+                mediaType = "text/plain",
+                bytes = report.summary.toByteArray(),
+            ),
+        )
     }
 
     override suspend fun getReport(reportId: Long): MedicalReport {
         delay(150)
-        return latestReport.copy(reportId = reportId)
+        return reports.firstOrNull { it.reportId == reportId } ?: reports.first().copy(reportId = reportId)
     }
 }

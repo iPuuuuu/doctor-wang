@@ -6,6 +6,7 @@ import androidx.room.Room
 import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
 import com.ipuuuuu.doctorwang.data.repository.RemoteDoctorWangRepository
 import com.ipuuuuu.doctorwang.database.DoctorWangDatabase
+import com.ipuuuuu.doctorwang.database.dao.MessageDao
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -34,8 +35,11 @@ object AppModule {
             context,
             DoctorWangDatabase::class.java,
             "doctor_wang.db",
-        ).build()
+        ).fallbackToDestructiveMigration().build()
     }
+
+    @Provides
+    fun provideMessageDao(database: DoctorWangDatabase): MessageDao = database.messageDao()
 
     @Provides
     fun provideContentResolver(@ApplicationContext context: Context): ContentResolver = context.contentResolver

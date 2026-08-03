@@ -29,10 +29,14 @@ class ChatViewModel @Inject constructor(
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
     init {
+        loadHistory()
+    }
+
+    fun loadHistory() {
         viewModelScope.launch {
             runCatching { repository.getHistoryMessages() }
                 .onSuccess { messages ->
-                    _uiState.value = _uiState.value.copy(messages = messages, isLoading = false)
+                    _uiState.value = _uiState.value.copy(messages = messages, isLoading = false, errorMessage = null)
                 }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
@@ -50,19 +54,40 @@ class ChatViewModel @Inject constructor(
     fun sendMessage() {
         val content = _uiState.value.input.trim()
         if (content.isEmpty() || _uiState.value.isSending) return
+        send(content)
+    }
 
+    fun retryMessage(messageId: String) {
+        val failedMessage = _uiState.value.messages.firstOrNull { it.id == messageId && it.status == MessageStatus.FAILED }
+            ?: return
+        if (_uiState.value.isSending) return
+
+        val retriedMessages = _uiState.value.messages.map {
+            if (it.id == messageId) it.copy(status = MessageStatus.SENDING, timestamp = System.currentTimeMillis()) else it
+        }
+        _uiState.value = _uiState.value.copy(messages = retriedMessages, errorMessage = null)
+        send(failedMessage.content, existingUserMessageId = messageId)
+    }
+
+    private fun send(content: String, existingUserMessageId: String? = null) {
+        val now = System.currentTimeMillis()
         val userMessage = Message(
-            id = "user-${System.currentTimeMillis()}",
+            id = existingUserMessageId ?: "user-$now",
             content = content,
             role = "user",
-            timestamp = System.currentTimeMillis(),
-            status = MessageStatus.SENT,
+            timestamp = now,
+            status = MessageStatus.SENDING,
         )
 
-        val updatedMessages = _uiState.value.messages + userMessage
+        val updatedMessages = if (existingUserMessageId == null) {
+            _uiState.value.messages + userMessage
+        } else {
+            _uiState.value.messages.map { if (it.id == existingUserMessageId) userMessage else it }
+        }
+
         _uiState.value = _uiState.value.copy(
             messages = updatedMessages,
-            input = "",
+            input = if (existingUserMessageId == null) "" else _uiState.value.input,
             isSending = true,
             errorMessage = null,
         )
@@ -70,13 +95,19 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             repository.sendMessage(content, updatedMessages)
                 .onSuccess { response ->
+                    val sentMessages = _uiState.value.messages.map {
+                        if (it.id == userMessage.id) it.copy(status = MessageStatus.SENT) else it
+                    }
                     _uiState.value = _uiState.value.copy(
-                        messages = _uiState.value.messages + response,
+                        messages = sentMessages + response,
                         isSending = false,
                     )
                 }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
+                        messages = _uiState.value.messages.map {
+                            if (it.id == userMessage.id) it.copy(status = MessageStatus.FAILED) else it
+                        },
                         isSending = false,
                         errorMessage = error.message ?: "发送失败",
                     )

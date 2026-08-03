@@ -11,3 +11,12 @@ server:
 spring:
   application:
     name: doctor-wang-mock-server
+
+doctor-wang:
+  ai:
+    provider: ${DOCTOR_WANG_AI_PROVIDER:mock}
+    mock:
+      default-answer: ${DOCTOR_WANG_AI_MOCK_DEFAULT_ANSWER:我已经记录你的情况。建议结合既往病史继续观察，如症状持续或加重，请及时线下就医。}
+    claude:
+      api-key: ${ANTHROPIC_API_KEY:}
+      model: ${DOCTOR_WANG_CLAUDE_MODEL:claude-opus-5}

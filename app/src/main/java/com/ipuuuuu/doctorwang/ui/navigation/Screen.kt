@@ -6,6 +6,7 @@ sealed class Screen(val route: String) {
     data object Home : Screen("home")
     data object Chat : Screen("chat")
     data object Upload : Screen("upload")
+    data object ReportList : Screen("report_list")
     data object Profile : Screen("profile")
     data object Settings : Screen("settings")
     data object ReportDetail : Screen("report_detail/{reportId}") {

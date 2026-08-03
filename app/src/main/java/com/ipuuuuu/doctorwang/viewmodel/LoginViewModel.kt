@@ -18,6 +18,7 @@ data class LoginUiState(
     val errorMessage: String? = null,
     val loginSuccess: Boolean = false,
     val showServerGuide: Boolean = false,
+    val isRegisterMode: Boolean = false,
 )
 
 @HiltViewModel
@@ -50,6 +51,10 @@ class LoginViewModel @Inject constructor(
         }
     }
 
+    fun toggleRegisterMode() {
+        _uiState.value = _uiState.value.copy(isRegisterMode = !_uiState.value.isRegisterMode, errorMessage = null)
+    }
+
     fun login() {
         val current = _uiState.value
         if (current.account.isBlank() || current.password.isBlank()) {
@@ -58,7 +63,8 @@ class LoginViewModel @Inject constructor(
         }
         viewModelScope.launch {
             _uiState.value = current.copy(isLoading = true, errorMessage = null)
-            repository.login(current.account, current.password)
+            val request = if (current.isRegisterMode) repository.register(current.account, current.password) else repository.login(current.account, current.password)
+            request
                 .onSuccess {
                     _uiState.value = _uiState.value.copy(isLoading = false, loginSuccess = true)
                 }

@@ -17,6 +17,7 @@ data class UploadUiState(
     val uploadSuccess: Boolean = false,
     val uploadedReportId: Long? = null,
     val errorMessage: String? = null,
+    val progressMessage: String = "请选择要上传的病历文件",
 )
 
 @HiltViewModel
@@ -33,6 +34,7 @@ class UploadViewModel @Inject constructor(
             errorMessage = null,
             uploadSuccess = false,
             uploadedReportId = null,
+            progressMessage = if (uri == null) "请选择要上传的病历文件" else "文件已选择，准备上传",
         )
     }
 
@@ -43,19 +45,25 @@ class UploadViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isUploading = true, errorMessage = null)
+            _uiState.value = _uiState.value.copy(
+                isUploading = true,
+                errorMessage = null,
+                progressMessage = "正在上传文件，请稍候...",
+            )
             repository.uploadReport(uri)
                 .onSuccess { reportId ->
                     _uiState.value = _uiState.value.copy(
                         isUploading = false,
                         uploadSuccess = true,
                         uploadedReportId = reportId,
+                        progressMessage = "上传完成，正在跳转到报告详情",
                     )
                 }
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         isUploading = false,
                         errorMessage = error.message ?: "上传失败",
+                        progressMessage = "上传失败，请检查网络或文件格式后重试",
                     )
                 }
         }

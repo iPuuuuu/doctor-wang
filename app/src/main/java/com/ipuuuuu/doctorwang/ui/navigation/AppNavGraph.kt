@@ -11,6 +11,7 @@ import com.ipuuuuu.doctorwang.ui.screen.chat.ChatScreen
 import com.ipuuuuu.doctorwang.ui.screen.home.HomeScreen
 import com.ipuuuuu.doctorwang.ui.screen.profile.HealthProfileScreen
 import com.ipuuuuu.doctorwang.ui.screen.report.ReportDetailScreen
+import com.ipuuuuu.doctorwang.ui.screen.report.ReportListScreen
 import com.ipuuuuu.doctorwang.ui.screen.settings.SettingsScreen
 import com.ipuuuuu.doctorwang.ui.screen.splash.SplashScreen
 import com.ipuuuuu.doctorwang.ui.screen.upload.UploadScreen
@@ -51,6 +52,7 @@ fun AppNavGraph(navController: NavHostController) {
                 onUploadClick = { navController.navigate(Screen.Upload.route) },
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                onReportListClick = { navController.navigate(Screen.ReportList.route) },
             )
         }
         composable(Screen.Chat.route) {
@@ -59,6 +61,14 @@ fun AppNavGraph(navController: NavHostController) {
         composable(Screen.Upload.route) {
             UploadScreen(
                 onUploadSuccess = { reportId ->
+                    navController.navigate(Screen.ReportDetail.createRoute(reportId))
+                },
+                onOpenReportList = { navController.navigate(Screen.ReportList.route) },
+            )
+        }
+        composable(Screen.ReportList.route) {
+            ReportListScreen(
+                onOpenReport = { reportId ->
                     navController.navigate(Screen.ReportDetail.createRoute(reportId))
                 },
             )

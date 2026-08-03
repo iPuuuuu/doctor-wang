@@ -48,6 +48,10 @@ class SessionManager @Inject constructor(
         return context.dataStore.data.first()[Keys.LoggedIn] == true
     }
 
+    suspend fun getToken(): String? = context.dataStore.data.first()[Keys.Token]
+
+    suspend fun getUserId(): String? = context.dataStore.data.first()[Keys.UserId]
+
     suspend fun getServerUrl(): String {
         return normalizeServerUrl(context.dataStore.data.first()[Keys.ServerUrl] ?: defaultServerUrl())
     }

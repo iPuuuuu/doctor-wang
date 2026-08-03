@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +23,7 @@ import com.ipuuuuu.doctorwang.viewmodel.UploadViewModel
 @Composable
 fun UploadScreen(
     onUploadSuccess: (Long) -> Unit,
+    onOpenReportList: () -> Unit,
     viewModel: UploadViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -45,6 +47,7 @@ fun UploadScreen(
         Text(text = "上传医疗资料", style = MaterialTheme.typography.headlineSmall)
         Text(text = "支持 PDF / JPG / PNG")
         Text(text = "已选择：${uiState.selectedUri?.lastPathSegment?.substringAfterLast('/') ?: "未选择文件"}")
+        Text(text = "当前进度：${uiState.progressMessage}")
         uiState.errorMessage?.let {
             Text(text = it, color = MaterialTheme.colorScheme.error)
         }
@@ -58,14 +61,27 @@ fun UploadScreen(
                 launcher.launch(intent)
             },
             modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isUploading,
         ) {
             Text("选择文件")
         }
         Button(
             onClick = viewModel::upload,
             modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isUploading,
         ) {
-            Text(if (uiState.isUploading) "上传中..." else "开始上传")
+            if (uiState.isUploading) {
+                CircularProgressIndicator()
+            } else {
+                Text("开始上传")
+            }
+        }
+        Button(
+            onClick = onOpenReportList,
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isUploading,
+        ) {
+            Text("查看我的病历")
         }
     }
 }

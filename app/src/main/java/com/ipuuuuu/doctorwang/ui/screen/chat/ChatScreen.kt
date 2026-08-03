@@ -24,6 +24,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ipuuuuu.doctorwang.data.model.MessageStatus
 import com.ipuuuuu.doctorwang.ui.component.MessageBubble
 import com.ipuuuuu.doctorwang.viewmodel.ChatViewModel
 
@@ -86,7 +87,14 @@ fun ChatScreen(
                     }
                 }
                 items(uiState.messages, key = { it.id }) { message ->
-                    MessageBubble(message = message)
+                    MessageBubble(
+                        message = message,
+                        onRetry = if (message.status == MessageStatus.FAILED) {
+                            { viewModel.retryMessage(message.id) }
+                        } else {
+                            null
+                        },
+                    )
                 }
             }
         }
