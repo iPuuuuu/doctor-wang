@@ -20,6 +20,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -34,9 +35,14 @@ fun HomeScreen(
     onUploadClick: () -> Unit,
     onProfileClick: () -> Unit,
     onSettingsClick: () -> Unit,
+    onSessionExpired: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
+
+    LaunchedEffect(uiState.sessionExpired) {
+        if (uiState.sessionExpired) onSessionExpired()
+    }
 
     if (uiState.isLoading) {
         Column(
@@ -137,7 +143,7 @@ fun HomeScreen(
                 ) {
                     Text(text = "真机使用提醒", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
                     Text(
-                        text = "如果你正在手机上演示，请先确认服务设置中的地址已经改成电脑局域网 IP，并且 mock server 正在运行。",
+                        text = "如果你正在手机上演示，请先确认服务设置中的地址已经改成电脑局域网 IP，并且后端服务正在运行。",
                         style = MaterialTheme.typography.bodyMedium,
                     )
                 }
@@ -200,8 +206,9 @@ private fun HealthOverviewCard(
     bmiText: String,
     statusSummary: String,
     recentRecordText: String,
+    modifier: Modifier = Modifier,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = modifier.fillMaxWidth()) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()

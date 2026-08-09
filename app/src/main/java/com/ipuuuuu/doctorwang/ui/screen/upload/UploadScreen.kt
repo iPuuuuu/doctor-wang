@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +24,7 @@ import com.ipuuuuu.doctorwang.viewmodel.UploadViewModel
 @Composable
 fun UploadScreen(
     onUploadSuccess: (Long) -> Unit,
+    onSessionExpired: () -> Unit,
     viewModel: UploadViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -36,6 +39,10 @@ fun UploadScreen(
         if (uiState.uploadSuccess && reportId != null) onUploadSuccess(reportId)
     }
 
+    LaunchedEffect(uiState.sessionExpired) {
+        if (uiState.sessionExpired) onSessionExpired()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -48,6 +55,33 @@ fun UploadScreen(
         uiState.errorMessage?.let {
             Text(text = it, color = MaterialTheme.colorScheme.error)
         }
+
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+        ) {
+            Column(
+                modifier = Modifier.padding(16.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                Text(text = "当前状态", style = MaterialTheme.typography.titleSmall)
+                Text(text = when {
+                    uiState.isUploading -> "正在上传报告…"
+                    uiState.isPollingStatus -> "正在获取解析状态…"
+                    uiState.reportStatus != null -> {
+                        val status = uiState.reportStatus!!
+                        "${status.summary} · ${status.phase ?: "未知阶段"}"
+                    }
+                    else -> "等待选择并上传文件"
+                })
+                uiState.reportStatus?.let { status ->
+                    Text(text = "可重试：${if (status.canRetry) "是" else "否"}")
+                    Text(text = "需要复核：${if (status.requiresReview) "是" else "否"}")
+                    status.failureCategory?.let { Text(text = "失败分类：$it") }
+                }
+            }
+        }
+
         Button(
             onClick = {
                 val intent = Intent(Intent.ACTION_OPEN_DOCUMENT).apply {
@@ -64,8 +98,9 @@ fun UploadScreen(
         Button(
             onClick = viewModel::upload,
             modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isUploading && !uiState.isPollingStatus,
         ) {
-            Text(if (uiState.isUploading) "上传中..." else "开始上传")
+            Text(if (uiState.isUploading) "上传中..." else if (uiState.isPollingStatus) "查询状态中..." else "开始上传")
         }
     }
 }

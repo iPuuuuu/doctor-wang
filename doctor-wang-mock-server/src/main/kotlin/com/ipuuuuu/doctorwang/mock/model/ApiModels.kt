@@ -14,6 +14,13 @@ data class ChatRequest(
     val message: String,
 )
 
+data class ChatMessageResponse(
+    val id: String,
+    val content: String,
+    val role: String,
+    val timestamp: Long,
+)
+
 data class ChatResponse(
     val answer: String,
 )

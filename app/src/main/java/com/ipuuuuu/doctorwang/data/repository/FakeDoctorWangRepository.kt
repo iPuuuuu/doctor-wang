@@ -55,6 +55,10 @@ class FakeDoctorWangRepository @Inject constructor(
         sessionManager.clearSession()
     }
 
+    override suspend fun clearSession() {
+        sessionManager.clearSession()
+    }
+
     override suspend fun getProfile(): UserProfile {
         delay(250)
         return profile
@@ -118,5 +122,16 @@ class FakeDoctorWangRepository @Inject constructor(
     override suspend fun getReport(reportId: Long): MedicalReport {
         delay(150)
         return latestReport.copy(reportId = reportId)
+    }
+
+    override suspend fun getReportStatus(reportId: Long): MedicalReport {
+        delay(120)
+        return latestReport.copy(
+            reportId = reportId,
+            phase = "COMPLETED",
+            canRetry = false,
+            requiresReview = false,
+            failureCategory = null,
+        )
     }
 }

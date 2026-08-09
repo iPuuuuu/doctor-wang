@@ -3,17 +3,22 @@ package com.ipuuuuu.doctorwang.data.repository
 import android.content.ContentResolver
 import android.net.Uri
 import android.provider.OpenableColumns
+import com.ipuuuuu.doctorwang.data.api.ChatMessageResponse
 import com.ipuuuuu.doctorwang.data.api.ChatRequest
 import com.ipuuuuu.doctorwang.data.api.HealthRecordResponse
 import com.ipuuuuu.doctorwang.data.api.LoginRequest
 import com.ipuuuuu.doctorwang.data.api.MedicalReportResponse
+import com.ipuuuuu.doctorwang.data.api.ReportStatusResponse
 import com.ipuuuuu.doctorwang.data.api.UploadRequest
 import com.ipuuuuu.doctorwang.data.api.UserProfileResponse
 import com.ipuuuuu.doctorwang.data.model.HealthRecord
 import com.ipuuuuu.doctorwang.data.model.MedicalReport
 import com.ipuuuuu.doctorwang.data.model.Message
+import com.ipuuuuu.doctorwang.data.model.MessageCitation
 import com.ipuuuuu.doctorwang.data.model.MessageStatus
 import com.ipuuuuu.doctorwang.data.model.UserProfile
+import com.ipuuuuu.doctorwang.database.dao.MessageDao
+import com.ipuuuuu.doctorwang.database.entity.MessageEntity
 import com.ipuuuuu.doctorwang.network.NetworkProvider
 import com.ipuuuuu.doctorwang.storage.SessionManager
 import java.io.IOException
@@ -22,12 +27,14 @@ import java.net.SocketTimeoutException
 import javax.inject.Inject
 import javax.inject.Singleton
 import retrofit2.HttpException
+import retrofit2.Response
 
 @Singleton
 class RemoteDoctorWangRepository @Inject constructor(
     private val networkProvider: NetworkProvider,
     private val sessionManager: SessionManager,
     private val contentResolver: ContentResolver,
+    private val messageDao: MessageDao,
 ) : DoctorWangRepository {
 
     override suspend fun isLoggedIn(): Boolean = sessionManager.isLoggedIn()
@@ -43,6 +50,10 @@ class RemoteDoctorWangRepository @Inject constructor(
         sessionManager.clearSession()
     }
 
+    override suspend fun clearSession() {
+        sessionManager.clearSession()
+    }
+
     override suspend fun getProfile(): UserProfile {
         return networkCall { api().getProfile().toDomain() }.getOrThrow()
     }
@@ -52,32 +63,40 @@ class RemoteDoctorWangRepository @Inject constructor(
     }
 
     override suspend fun getHistoryMessages(): List<Message> {
-        return listOf(
-            Message(
-                id = "history-user-1",
-                content = "最近胃有点不舒服",
-                role = "user",
-                timestamp = System.currentTimeMillis() - 120_000,
-            ),
-            Message(
-                id = "history-assistant-1",
-                content = "根据你的历史记录，你之前有胃炎记录。建议近期保持清淡饮食，避免辛辣刺激。",
-                role = "assistant",
-                timestamp = System.currentTimeMillis() - 60_000,
-            ),
-        )
+        return networkCall {
+            val remoteMessages = api().getChatHistory().map(ChatMessageResponse::toDomain)
+            messageDao.insertAll(remoteMessages.map(Message::toEntity))
+            remoteMessages
+        }.getOrElse {
+            messageDao.getAll().map(MessageEntity::toDomain)
+        }
     }
 
     override suspend fun sendMessage(content: String, currentMessages: List<Message>): Result<Message> {
         return networkCall {
             val response = api().chat(ChatRequest(message = content))
-            Message(
+            val assistantMessage = Message(
                 id = "assistant-${currentMessages.size + 1}",
-                content = response.answer,
+                content = response.message,
                 role = "assistant",
                 timestamp = System.currentTimeMillis(),
                 status = MessageStatus.SENT,
+                warnings = response.warnings,
+                citations = response.citations.map { it.toDomain() },
             )
+            messageDao.insertAll(
+                listOf(
+                    Message(
+                        id = "user-${currentMessages.size + 1}",
+                        content = content,
+                        role = "user",
+                        timestamp = assistantMessage.timestamp - 1,
+                        status = MessageStatus.SENT,
+                    ).toEntity(),
+                    assistantMessage.toEntity(),
+                ),
+            )
+            assistantMessage
         }
     }
 
@@ -92,6 +111,10 @@ class RemoteDoctorWangRepository @Inject constructor(
         return networkCall { api().getReport(reportId).toDomain() }.getOrThrow()
     }
 
+    override suspend fun getReportStatus(reportId: Long): MedicalReport {
+        return networkCall { api().getReportStatus(reportId).toDomain() }.getOrThrow()
+    }
+
     suspend fun getServerUrl(): String = sessionManager.getServerUrl()
 
     suspend fun saveServerUrl(value: String) {
@@ -104,8 +127,8 @@ class RemoteDoctorWangRepository @Inject constructor(
 
     private suspend fun api() = networkProvider.createApi(sessionManager.getServerUrl())
 
-    private inline fun <T> networkCall(block: () -> T): Result<T> {
-        return runCatching(block).mapError(::mapNetworkError)
+    private suspend inline fun <T> networkCall(crossinline block: suspend () -> T): Result<T> {
+        return runCatching { block() }.mapError(::mapNetworkError)
     }
 
     private fun resolveFileName(uri: Uri?): String {
@@ -125,10 +148,16 @@ class RemoteDoctorWangRepository @Inject constructor(
     private fun mapNetworkError(error: Throwable): Throwable {
         return when (error) {
             is ConnectException, is SocketTimeoutException -> IOException(
-                "无法连接到 Doctor-Wang 服务，请确认当前服务地址可访问；本地调试时请检查 mock server 与网络连接。",
+                "无法连接到 Doctor-Wang 服务，请确认当前服务地址可访问；本地调试时请检查后端服务与网络连接。",
                 error,
             )
-            is HttpException -> IOException("服务请求失败（${error.code()}），请稍后重试。", error)
+            is HttpException -> {
+                if (error.code() == 401) {
+                    SessionExpiredException(extractErrorMessage(error.response()) ?: "登录状态已失效，请重新登录", error)
+                } else {
+                    IOException("服务请求失败（${error.code()}），请稍后重试。", error)
+                }
+            }
             is IOException -> IOException(
                 "网络请求失败，请确认服务地址填写正确，或检查当前网络与后端服务状态。",
                 error,
@@ -136,6 +165,20 @@ class RemoteDoctorWangRepository @Inject constructor(
             else -> error
         }
     }
+}
+
+class SessionExpiredException(
+    message: String = "登录状态已失效，请重新登录",
+    cause: Throwable? = null,
+) : IOException(message, cause)
+
+private fun extractErrorMessage(response: Response<*>?): String? {
+    return response
+        ?.errorBody()
+        ?.string()
+        ?.substringAfter("\"message\":\"")
+        ?.substringBefore('"')
+        ?.takeIf { it.isNotBlank() }
 }
 
 private inline fun <T> Result<T>.mapError(transform: (Throwable) -> Throwable): Result<T> {
@@ -173,5 +216,64 @@ private fun MedicalReportResponse.toDomain(): MedicalReport {
         summary = summary,
         findings = findings,
         suggestions = suggestions,
+    )
+}
+
+private fun ReportStatusResponse.toDomain(): MedicalReport {
+    return MedicalReport(
+        reportId = reportId,
+        title = "报告 #$reportId",
+        date = "",
+        type = "",
+        summary = status,
+        findings = listOfNotNull(phase),
+        suggestions = buildList {
+            if (canRetry) add("可重试")
+            if (requiresReview) add("需要人工复核")
+            failureCategory?.let { add(it) }
+        },
+        phase = phase,
+        canRetry = canRetry,
+        requiresReview = requiresReview,
+        failureCategory = failureCategory,
+    )
+}
+
+private fun ChatMessageResponse.toDomain(): Message {
+    return Message(
+        id = id,
+        content = content,
+        role = role,
+        timestamp = timestamp,
+        status = MessageStatus.SENT,
+    )
+}
+
+private fun com.ipuuuuu.doctorwang.data.api.ChatCitationResponse.toDomain(): MessageCitation {
+    return MessageCitation(
+        sourceType = sourceType,
+        sourceId = sourceId,
+        pageNo = pageNo,
+        excerpt = excerpt,
+        confidence = confidence,
+    )
+}
+
+private fun Message.toEntity(): MessageEntity {
+    return MessageEntity(
+        id = id,
+        content = content,
+        role = role,
+        timestamp = timestamp,
+    )
+}
+
+private fun MessageEntity.toDomain(): Message {
+    return Message(
+        id = id,
+        content = content,
+        role = role,
+        timestamp = timestamp,
+        status = MessageStatus.SENT,
     )
 }

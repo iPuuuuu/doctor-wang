@@ -1,0 +1,10 @@
+alter table report_processing_job add column if not exists user_id bigint references app_user(id) on delete cascade;
+alter table report_processing_job add column if not exists phase varchar(32);
+alter table report_processing_job add column if not exists payload_hash varchar(64);
+alter table report_processing_job add column if not exists active_index_version varchar(128);
+alter table report_processing_job add column if not exists ai_job_id varchar(128);
+alter table report_processing_job add column if not exists idempotency_key varchar(128);
+update report_processing_job j set user_id = r.user_id, phase = coalesce(j.phase, j.stage) from medical_report r where r.id = j.report_id and j.user_id is null;
+update report_processing_job set phase = coalesce(phase, stage) where phase is null;
+create index if not exists idx_report_processing_job_user_id on report_processing_job(user_id);
+create index if not exists idx_report_processing_job_payload_hash on report_processing_job(payload_hash);

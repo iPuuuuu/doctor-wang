@@ -18,6 +18,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -30,9 +31,14 @@ import com.ipuuuuu.doctorwang.viewmodel.ChatViewModel
 @Composable
 fun ChatScreen(
     onUploadClick: () -> Unit,
+    onSessionExpired: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
+
+    LaunchedEffect(uiState.sessionExpired) {
+        if (uiState.sessionExpired) onSessionExpired()
+    }
 
     Column(
         modifier = Modifier
@@ -42,6 +48,23 @@ fun ChatScreen(
     ) {
         Text(text = "AI 问诊", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
         Text(text = "你可以直接输入“胃疼”“头疼”等问题进行演示。", style = MaterialTheme.typography.bodySmall)
+
+        uiState.conversationSummary?.let { summary ->
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+            ) {
+                Column(
+                    modifier = Modifier.padding(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(text = "最近一次会话", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
+                    Text(text = summary.title)
+                    Text(text = summary.detail, style = MaterialTheme.typography.bodySmall)
+                    Text(text = summary.latestAdvice, style = MaterialTheme.typography.bodySmall)
+                }
+            }
+        }
 
         Card(
             modifier = Modifier.fillMaxWidth(),

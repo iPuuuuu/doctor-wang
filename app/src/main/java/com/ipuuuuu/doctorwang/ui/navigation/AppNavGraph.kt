@@ -17,6 +17,13 @@ import com.ipuuuuu.doctorwang.ui.screen.upload.UploadScreen
 
 @Composable
 fun AppNavGraph(navController: NavHostController) {
+    val navigateToLoginAndClearStack = {
+        navController.navigate(Screen.Login.route) {
+            popUpTo(0)
+            launchSingleTop = true
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route,
@@ -51,34 +58,35 @@ fun AppNavGraph(navController: NavHostController) {
                 onUploadClick = { navController.navigate(Screen.Upload.route) },
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
+                onSessionExpired = navigateToLoginAndClearStack,
             )
         }
         composable(Screen.Chat.route) {
-            ChatScreen(onUploadClick = { navController.navigate(Screen.Upload.route) })
+            ChatScreen(
+                onUploadClick = { navController.navigate(Screen.Upload.route) },
+                onSessionExpired = navigateToLoginAndClearStack,
+            )
         }
         composable(Screen.Upload.route) {
             UploadScreen(
                 onUploadSuccess = { reportId ->
                     navController.navigate(Screen.ReportDetail.createRoute(reportId))
                 },
+                onSessionExpired = navigateToLoginAndClearStack,
             )
         }
         composable(
             route = Screen.ReportDetail.route,
             arguments = listOf(navArgument("reportId") { type = NavType.LongType }),
         ) {
-            ReportDetailScreen()
+            ReportDetailScreen(onSessionExpired = navigateToLoginAndClearStack)
         }
         composable(Screen.Profile.route) {
-            HealthProfileScreen()
+            HealthProfileScreen(onSessionExpired = navigateToLoginAndClearStack)
         }
         composable(Screen.Settings.route) {
             SettingsScreen(
-                onLoggedOut = {
-                    navController.navigate(Screen.Login.route) {
-                        popUpTo(0) { inclusive = true }
-                    }
-                },
+                onLoggedOut = navigateToLoginAndClearStack,
             )
         }
     }

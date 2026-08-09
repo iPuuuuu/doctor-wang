@@ -11,6 +11,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -19,9 +20,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ipuuuuu.doctorwang.viewmodel.ProfileViewModel
 
 @Composable
-fun HealthProfileScreen(viewModel: ProfileViewModel = hiltViewModel()) {
+fun HealthProfileScreen(
+    onSessionExpired: () -> Unit,
+    viewModel: ProfileViewModel = hiltViewModel(),
+) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val profile = uiState.profile
+
+    LaunchedEffect(uiState.sessionExpired) {
+        if (uiState.sessionExpired) onSessionExpired()
+    }
 
     if (uiState.isLoading) {
         Column(

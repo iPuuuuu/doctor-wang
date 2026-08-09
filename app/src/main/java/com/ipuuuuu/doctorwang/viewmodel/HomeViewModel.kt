@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ipuuuuu.doctorwang.data.model.Message
 import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
+import com.ipuuuuu.doctorwang.data.repository.SessionExpiredException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -22,6 +23,7 @@ data class HomeUiState(
     val historyMessages: List<Message> = emptyList(),
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
+    val sessionExpired: Boolean = false,
 )
 
 @HiltViewModel
@@ -38,7 +40,7 @@ class HomeViewModel @Inject constructor(
 
     fun refresh() {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, sessionExpired = false)
             runCatching {
                 val profile = repository.getProfile()
                 val messages = repository.getHistoryMessages()
@@ -60,10 +62,19 @@ class HomeViewModel @Inject constructor(
             }.onSuccess { state ->
                 _uiState.value = state
             }.onFailure { error ->
-                _uiState.value = HomeUiState(
-                    isLoading = false,
-                    errorMessage = error.message ?: "首页加载失败",
-                )
+                if (error is SessionExpiredException) {
+                    repository.clearSession()
+                    _uiState.value = HomeUiState(
+                        isLoading = false,
+                        errorMessage = error.message ?: "登录状态已失效，请重新登录",
+                        sessionExpired = true,
+                    )
+                } else {
+                    _uiState.value = HomeUiState(
+                        isLoading = false,
+                        errorMessage = error.message ?: "首页加载失败",
+                    )
+                }
             }
         }
     }

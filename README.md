@@ -1,5 +1,10 @@
 # Doctor-Wang Android 项目完整实现计划书
 
+## 文档索引
+
+- [Vibecoding 工具清单（2026 实用版）](docs/vibecoding-tools.md)
+
+
 ## 当前可运行 Demo 使用说明
 
 ### 1. APK 输出路径
@@ -40,10 +45,10 @@ https://doctor-wang-demo.example.com/
 ```
 
 这意味着：
-- 开发调试阶段继续使用本地 mock backend 最方便
+- 开发调试阶段继续使用本地后端服务最方便
 - 真正给用户安装使用前，应先把后端部署上线，再构建 release 包
 
-### 4. 本地 mock backend 启动方式
+### 4. 本地后端启动方式
 后端目录：
 
 ```text
@@ -71,7 +76,7 @@ http://127.0.0.1:8080/
 
 ### 5. 本地真机联调步骤
 1. 电脑和手机连接同一个 Wi‑Fi。
-2. 启动 `doctor-wang-mock-server`。
+2. 启动 `doctor-wang-mock-server` 后端服务。
 3. 在电脑命令行执行：
 
 ```bat
@@ -97,7 +102,7 @@ http://192.168.1.10:8080/
 
 ### 6. 上线部署后的推荐发布方式
 推荐顺序：
-1. 先把 `doctor-wang-mock-server` 部署到公网可访问的 HTTPS 域名。
+1. 先把 `doctor-wang-mock-server` 后端部署到公网可访问的 HTTPS 域名。
 2. 构建 Android release 时注入线上地址：
 
 ```bat
@@ -1142,7 +1147,7 @@ data class HealthProfile(
 
 Doctor-Wang 项目非常适合采用“先规划、再并行实现、最后汇总验收”的方式推进。
 
-如果严格按本计划执行，第一版完全可以在较短周期内完成一个可运行、可演示、可继续扩展的 Android 健康助手 Demo。
+如果严格按本计划执行，第一版完全可以在较短周期内完成一个可运行、可上线试用、可继续扩展的 Android 健康助手产品基础版。
 
 该计划书已经覆盖：
 - 产品页面设计

@@ -54,7 +54,7 @@ fun LoginScreen(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 Text(text = "首次使用前请先设置服务地址", style = MaterialTheme.typography.titleMedium)
-                Text(text = "1. 先在电脑启动 mock backend\n2. 手机和电脑连接同一 Wi‑Fi\n3. 进入服务设置填写 http://<电脑IP>:8080/")
+                Text(text = "1. 先在电脑启动后端服务\n2. 手机和电脑连接同一 Wi‑Fi\n3. 进入服务设置填写 http://<电脑IP>:8080/")
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onOpenSettings, modifier = Modifier.weight(1f)) {
                         Text("打开服务设置")
@@ -67,7 +67,7 @@ fun LoginScreen(
         }
 
         Text(
-            text = "演示账号可直接输入任意手机号/邮箱和密码。真机测试前，请先在设置页确认服务地址。",
+            text = "当前可使用演示账号 demo@doctorwang.app / 123456。真机测试前，请先在设置页确认服务地址。",
             style = MaterialTheme.typography.bodySmall,
         )
 

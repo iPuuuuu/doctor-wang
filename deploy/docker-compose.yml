@@ -1,0 +1,48 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: doctor-wang-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-doctor_wang}
+      POSTGRES_USER: ${POSTGRES_USER:-doctor_wang}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-doctor_wang}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-doctor_wang} -d ${POSTGRES_DB:-doctor_wang}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: ../doctor-wang-mock-server
+    container_name: doctor-wang-backend
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-doctor_wang}
+      SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-doctor_wang}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-doctor_wang}
+      APP_AUTH_TOKEN_PREFIX: ${APP_AUTH_TOKEN_PREFIX:-dw-token}
+      SERVER_ADDRESS: 0.0.0.0
+      PORT: 8080
+    expose:
+      - "8080"
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: doctor-wang-nginx
+    restart: unless-stopped
+    depends_on:
+      - backend
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+
+volumes:
+  postgres_data:

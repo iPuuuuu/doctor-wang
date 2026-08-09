@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -17,18 +16,28 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.ipuuuuu.doctorwang.data.model.MedicalReport
 import com.ipuuuuu.doctorwang.viewmodel.ReportDetailViewModel
 
 @Composable
-fun ReportDetailScreen(viewModel: ReportDetailViewModel = hiltViewModel()) {
+fun ReportDetailScreen(
+    onSessionExpired: () -> Unit,
+    viewModel: ReportDetailViewModel = hiltViewModel(),
+) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val report = uiState.report
+    val status = uiState.reportStatus
+
+    LaunchedEffect(uiState.sessionExpired) {
+        if (uiState.sessionExpired) onSessionExpired()
+    }
 
     if (uiState.isLoading) {
         Column(
@@ -75,10 +84,16 @@ fun ReportDetailScreen(viewModel: ReportDetailViewModel = hiltViewModel()) {
                     Text(text = "检查报告", style = MaterialTheme.typography.titleMedium)
                     Text(text = report.title, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        InfoChip(text = report.date)
-                        InfoChip(text = report.type)
+                        if (report.date.isNotBlank()) InfoChip(text = report.date)
+                        if (report.type.isNotBlank()) InfoChip(text = report.type)
+                        status?.phase?.let { InfoChip(text = it) }
                     }
                 }
+            }
+        }
+        item {
+            SectionCard(title = "处理状态") {
+                ReportStatusBlock(status = status ?: report, isRefreshing = uiState.isRefreshingStatus)
             }
         }
         item {
@@ -110,11 +125,29 @@ fun ReportDetailScreen(viewModel: ReportDetailViewModel = hiltViewModel()) {
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
             ) {
                 Text(
-                    text = "当前页面展示的是本地 mock backend 返回的演示结果，可用于真机讲解上传→解析→查看报告的完整闭环。",
+                    text = "当前页面展示的是后端真实持久化后的报告记录；后续还会继续补 multipart 真文件上传与 OCR/结构化解析。",
                     modifier = Modifier.padding(16.dp),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun ReportStatusBlock(status: MedicalReport, isRefreshing: Boolean) {
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(text = status.summary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        status.phase?.let {
+            Text(text = "当前阶段：$it", style = MaterialTheme.typography.bodyMedium)
+        }
+        Text(text = "可重试：${if (status.canRetry) "是" else "否"}")
+        Text(text = "需要人工复核：${if (status.requiresReview) "是" else "否"}")
+        status.failureCategory?.let {
+            Text(text = "失败分类：$it", color = MaterialTheme.colorScheme.error)
+        }
+        if (isRefreshing) {
+            Text(text = "正在刷新处理状态…", color = MaterialTheme.colorScheme.primary)
         }
     }
 }

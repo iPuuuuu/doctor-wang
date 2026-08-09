@@ -8,4 +8,8 @@ data class MedicalReport(
     val summary: String,
     val findings: List<String>,
     val suggestions: List<String>,
+    val phase: String? = null,
+    val canRetry: Boolean = false,
+    val requiresReview: Boolean = false,
+    val failureCategory: String? = null,
 )

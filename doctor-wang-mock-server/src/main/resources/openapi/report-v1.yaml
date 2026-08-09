@@ -1,0 +1,88 @@
+openapi: 3.0.3
+info:
+  title: Doctor-Wang Report API
+  version: 1.0.0
+  description: Stable upload orchestration contract. This phase does not produce AI results. Idempotency is available only when Idempotency-Key is supplied and is retained for 24 hours.
+paths:
+  /api/v1/reports:
+    post:
+      operationId: uploadReport
+      parameters:
+        - { $ref: '#/components/parameters/TraceId' }
+        - { $ref: '#/components/parameters/IdempotencyKey' }
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file]
+              properties:
+                file: { type: string, format: binary }
+                reportDate: { type: string }
+                reportType: { type: string }
+      responses:
+        '202': { description: Accepted, content: { application/json: { schema: { $ref: '#/components/schemas/UploadResponse' } } } }
+        '400': { $ref: '#/components/responses/Error' }
+        '409': { $ref: '#/components/responses/Error' }
+        '413': { $ref: '#/components/responses/Error' }
+        '415': { $ref: '#/components/responses/Error' }
+  /api/v1/reports/{reportId}/status:
+    get:
+      parameters: [{ $ref: '#/components/parameters/ReportId' }, { $ref: '#/components/parameters/TraceId' }]
+      responses: {'200': { description: Status, content: { application/json: { schema: { $ref: '#/components/schemas/StatusResponse' } } } }, '404': { $ref: '#/components/responses/Error' }}
+  /api/v1/reports/{reportId}:
+    get:
+      parameters: [{ $ref: '#/components/parameters/ReportId' }, { $ref: '#/components/parameters/TraceId' }]
+      responses: {'200': { description: Detail, content: { application/json: { schema: { $ref: '#/components/schemas/DetailResponse' } } } }, '404': { $ref: '#/components/responses/Error' }}
+    delete:
+      parameters: [{ $ref: '#/components/parameters/ReportId' }, { $ref: '#/components/parameters/TraceId' }]
+      responses: {'204': { description: Deleted }, '404': { $ref: '#/components/responses/Error' }}
+  /api/v1/reports/{reportId}/retry:
+    post:
+      parameters: [{ $ref: '#/components/parameters/ReportId' }, { $ref: '#/components/parameters/TraceId' }]
+      responses: {'200': { description: Requeued, content: { application/json: { schema: { $ref: '#/components/schemas/StatusResponse' } } } }, '409': { $ref: '#/components/responses/Error' }}
+components:
+  parameters:
+    ReportId: { name: reportId, in: path, required: true, schema: { type: integer, format: int64 } }
+    TraceId: { name: X-Trace-Id, in: header, schema: { type: string, maxLength: 128 } }
+    IdempotencyKey: { name: Idempotency-Key, in: header, schema: { type: string, maxLength: 128 } }
+  schemas:
+    UploadResponse:
+      type: object
+      required: [reportId, processingJobId, status, statusUrl]
+      properties:
+        reportId: { type: integer, format: int64 }
+        processingJobId: { type: string, format: uuid }
+        status: { type: string, enum: [STORED, PROCESSING, RETRYING, FAILED, COMPLETED] }
+        statusUrl: { type: string }
+    StatusResponse:
+      type: object
+      required: [reportId, processingJobId, status, stage, retryable, updatedAt, traceId]
+      properties:
+        reportId: { type: integer, format: int64 }
+        processingJobId: { type: string, format: uuid }
+        status: { type: string, enum: [STORED, PROCESSING, RETRYING, FAILED, COMPLETED] }
+        stage: { type: string, enum: [STORED, EXTRACTING, CHUNKING, INDEXING, ANALYZING, SAFETY_REVIEW, FINISHED] }
+        retryable: { type: boolean }
+        errorCode: { type: string, nullable: true }
+        updatedAt: { type: string, format: date-time }
+        traceId: { type: string }
+    DetailResponse:
+      type: object
+      properties:
+        reportId: { type: integer, format: int64 }
+        title: { type: string }
+        reportDate: { type: string }
+        reportType: { type: string }
+        status: { type: string, enum: [STORED, PROCESSING, RETRYING, FAILED, COMPLETED] }
+        summary: { type: string, nullable: true }
+        findings: { type: array, items: { type: string } }
+        suggestions: { type: array, items: { type: string } }
+        disclaimer: { type: string }
+    Error:
+      type: object
+      required: [code, message, traceId]
+      properties: { code: { type: string }, message: { type: string }, traceId: { type: string } }
+  responses:
+    Error: { description: Stable error response, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }

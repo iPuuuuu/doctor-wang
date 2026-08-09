@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ipuuuuu.doctorwang.data.model.MedicalReport
 import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
+import com.ipuuuuu.doctorwang.data.repository.SessionExpiredException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,8 +15,11 @@ import kotlinx.coroutines.launch
 
 data class ReportDetailUiState(
     val report: MedicalReport? = null,
+    val reportStatus: MedicalReport? = null,
     val isLoading: Boolean = true,
+    val isRefreshingStatus: Boolean = false,
     val errorMessage: String? = null,
+    val sessionExpired: Boolean = false,
 )
 
 @HiltViewModel
@@ -35,19 +39,61 @@ class ReportDetailViewModel @Inject constructor(
 
     fun loadReport() {
         viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, sessionExpired = false)
             runCatching { repository.getReport(reportId) }
                 .onSuccess { report ->
-                    _uiState.value = ReportDetailUiState(
+                    _uiState.value = _uiState.value.copy(
                         report = report,
+                        reportStatus = report,
                         isLoading = false,
+                        isRefreshingStatus = false,
                     )
+                    viewModelScope.launch {
+                        refreshReportStatus()
+                    }
                 }
                 .onFailure { error ->
-                    _uiState.value = ReportDetailUiState(
-                        isLoading = false,
-                        errorMessage = error.message ?: "报告加载失败",
-                    )
+                    if (error is SessionExpiredException) {
+                        repository.clearSession()
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isRefreshingStatus = false,
+                            errorMessage = error.message ?: "登录状态已失效，请重新登录",
+                            sessionExpired = true,
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            isRefreshingStatus = false,
+                            errorMessage = error.message ?: "报告加载失败",
+                        )
+                    }
                 }
+        }
+    }
+
+    private suspend fun refreshReportStatus() {
+        _uiState.value = _uiState.value.copy(isRefreshingStatus = true)
+        try {
+            val status = repository.getReportStatus(reportId)
+            _uiState.value = _uiState.value.copy(
+                reportStatus = status,
+                isRefreshingStatus = false,
+            )
+        } catch (error: Throwable) {
+            if (error is SessionExpiredException) {
+                repository.clearSession()
+                _uiState.value = _uiState.value.copy(
+                    isRefreshingStatus = false,
+                    errorMessage = error.message ?: "登录状态已失效，请重新登录",
+                    sessionExpired = true,
+                )
+            } else {
+                _uiState.value = _uiState.value.copy(
+                    isRefreshingStatus = false,
+                    errorMessage = error.message ?: "报告状态刷新失败",
+                )
+            }
         }
     }
 }

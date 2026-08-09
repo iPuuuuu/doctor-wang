@@ -6,6 +6,7 @@ import androidx.room.Room
 import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
 import com.ipuuuuu.doctorwang.data.repository.RemoteDoctorWangRepository
 import com.ipuuuuu.doctorwang.database.DoctorWangDatabase
+import com.ipuuuuu.doctorwang.database.dao.MessageDao
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -39,4 +40,7 @@ object AppModule {
 
     @Provides
     fun provideContentResolver(@ApplicationContext context: Context): ContentResolver = context.contentResolver
+
+    @Provides
+    fun provideMessageDao(database: DoctorWangDatabase): MessageDao = database.messageDao()
 }
