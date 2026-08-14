@@ -96,6 +96,8 @@ class PostgresIntegrationMatrixTest {
             registry.add("spring.datasource.password") { postgres.password }
             registry.add("app.file-storage.root") { storageRoot.toString() }
             registry.add("app.report-processing.worker-enabled") { "false" }
+            // AuthProperties fail-fast 要求 ≥32 字符；缺失会导致 CI 的 postgresIntegrationTest 上下文无法启动
+            registry.add("app.auth.jwt-secret") { "integration-test-secret-0123456789abcdef" }
         }
     }
 }
