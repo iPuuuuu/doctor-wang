@@ -101,6 +101,7 @@ services:
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
       - ${TLS_CERTS_DIR:?TLS_CERTS_DIR must be set}:/etc/nginx/certs:ro
+      - /srv/downloads:/srv/downloads:ro  # APK 调试包下载
 
   # SEC-001 / ADR-0008：ClamAV 病毒扫描（可选 profile）。
   # 启用：docker compose --profile scan --env-file .env up -d --build，并设 VIRUS_SCAN_ENABLED=true。

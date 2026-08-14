@@ -1,4 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- 仅 debug 构建：允许明文（本地调试）+ 信任自签服务器证书（当前 ECS 无域名阶段） -->
 <network-security-config>
     <base-config cleartextTrafficPermitted="true" />
+    <domain-config cleartextTrafficPermitted="false">
+        <domain includeSubdomains="false">120.55.186.220</domain>
+        <trust-anchors>
+            <certificates src="@raw/server_cert"/>
+        </trust-anchors>
+    </domain-config>
 </network-security-config>
