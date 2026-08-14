@@ -3,7 +3,7 @@ package com.ipuuuuu.doctorwang.mock.controller
 import com.ipuuuuu.doctorwang.mock.model.ChatMessageResponse
 import com.ipuuuuu.doctorwang.mock.model.ChatRequest
 import com.ipuuuuu.doctorwang.mock.model.ChatResponse
-import com.ipuuuuu.doctorwang.mock.service.BackendService
+import com.ipuuuuu.doctorwang.mock.service.ChatService
 import org.springframework.web.bind.annotation.GetMapping
 import org.springframework.web.bind.annotation.PostMapping
 import org.springframework.web.bind.annotation.RequestBody
@@ -13,15 +13,11 @@ import org.springframework.web.bind.annotation.RestController
 @RestController
 @RequestMapping("/api")
 class ChatController(
-    private val backendService: BackendService,
+    private val chatService: ChatService,
 ) {
     @GetMapping("/chat/history")
-    fun getChatHistory(): List<ChatMessageResponse> {
-        return backendService.getChatHistory()
-    }
+    fun getChatHistory(): List<ChatMessageResponse> = chatService.getHistory()
 
     @PostMapping("/chat")
-    fun chat(@RequestBody request: ChatRequest): ChatResponse {
-        return backendService.answerQuestion(request.message)
-    }
+    fun chat(@RequestBody request: ChatRequest): ChatResponse = chatService.sendMessage(request.message)
 }

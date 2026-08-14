@@ -30,7 +30,10 @@ spring:
 
 app:
   auth:
-    token-prefix: ${APP_AUTH_TOKEN_PREFIX:dw-token}
+    jwt-secret: ${APP_AUTH_JWT_SECRET:}
+    jwt-issuer: ${APP_AUTH_JWT_ISSUER:doctor-wang-backend}
+    jwt-audience: ${APP_AUTH_JWT_AUDIENCE:doctor-wang-android}
+    jwt-ttl-seconds: ${APP_AUTH_JWT_TTL_SECONDS:3600}
   file-storage:
     root: ${REPORT_FILE_STORAGE_ROOT:./data/report-files}
     signing-secret: ${REPORT_FILE_STORAGE_SIGNING_SECRET:dev-only-change-me}
@@ -38,6 +41,24 @@ app:
     worker-enabled: ${REPORT_PROCESSING_WORKER_ENABLED:false}
     poll-interval-ms: ${REPORT_PROCESSING_POLL_INTERVAL_MS:5000}
     max-attempts: ${REPORT_PROCESSING_MAX_ATTEMPTS:3}
+  virus-scan:
+    # SEC-001：生产必须 VIRUS_SCAN_ENABLED=true 激活 ClamAvVirusScanner（fail-closed）。
+    # false（默认）时使用 NoopVirusScanner 开发占位，上传不做病毒扫描（已知生产缺口）。
+    enabled: ${VIRUS_SCAN_ENABLED:false}
+    host: ${VIRUS_SCAN_HOST:localhost}
+    port: ${VIRUS_SCAN_PORT:3310}
+    connect-timeout-ms: ${VIRUS_SCAN_CONNECT_TIMEOUT_MS:2000}
+    read-timeout-ms: ${VIRUS_SCAN_READ_TIMEOUT_MS:10000}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        # DEPLOY-001a：仅暴露 health（不暴露 env/beans/metrics 等敏感端点）
+        include: health
+  endpoint:
+    health:
+      show-details: never
   ai-service:
     enabled: ${AI_SERVICE_ENABLED:false}
     base-url: ${AI_SERVICE_BASE_URL:http://localhost:8000}

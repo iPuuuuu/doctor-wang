@@ -35,6 +35,12 @@ http://127.0.0.1:8080/
 
 - `PORT`：服务端口，默认 `8080`
 - `SERVER_ADDRESS`：监听地址，默认 `0.0.0.0`
+- `APP_AUTH_JWT_SECRET`：JWT HS256 签名密钥，至少 32 个字符；生产环境必须通过密钥管理系统注入
+- `APP_AUTH_JWT_ISSUER`：JWT issuer，默认 `doctor-wang-backend`
+- `APP_AUTH_JWT_AUDIENCE`：JWT audience，默认 `doctor-wang-android`
+- `APP_AUTH_JWT_TTL_SECONDS`：JWT 有效期，默认 3600 秒
+
+登录成功返回的 `token` 是短期 JWT。服务端同时保存带 JTI 和 token hash 的会话记录，用于撤销和用户隔离。部署 V8 migration 后，旧的 opaque session token 会失效，客户端需要重新登录。
 
 例如本地手动指定端口：
 
@@ -69,7 +75,7 @@ http://192.168.1.10:8080/
 - Render
 - Railway
 - Fly.io
-- 自己的 Linux 服务器 + Docker / Java 17
+- 自己的 Linux 服务器 + Docker / Java 21（ADR-0007，2026-08-14 起）
 
 ### 方式一：直接 jar 运行
 先构建：
@@ -128,6 +134,10 @@ set DOCTOR_WANG_RELEASE_BASE_URL=https://your-domain.example/
 - `POST /api/chat`
 - `POST /api/report/upload`
 - `GET /api/report/{id}`
+
+### AI Service 联调（开发态）
+
+当 `AI_SERVICE_ENABLED=true` 且配置 `AI_SERVICE_BASE_URL`、`AI_SERVICE_INTERNAL_TOKEN` 后，报告 worker 会将已隔离的对象 key 交给 AI Service 处理，并通过 ingestion status 查询结果。AI Service 的 retry endpoint 只会重放保留的请求元数据，不保存文件内容；`REVIEW_REQUIRED`、provider 不可用和不完整结果均 fail closed，不会生成确定性医学结论。
 
 ### RAG 报告上传（v1）
 

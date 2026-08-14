@@ -43,8 +43,28 @@ class PostgreSqlPollingWorker(
         jobs.saveAndFlush(job)
 
         val result = executor.execute(job)
-        // P0 deliberately rejects completion from the generic executor. AI acceptance is P3.
-        fail(job, result.errorCode ?: "AI_RESULT_INVALID")
+        if (result.status == "COMPLETED" && !result.reviewRequired && result.errorCode == null) {
+            stateMachine.transition(job.status, job.stage, "COMPLETED", "FINISHED")
+            job.status = "COMPLETED"
+            job.stage = "FINISHED"
+            job.phase = "FINISHED"
+            job.retryable = false
+            job.errorCode = null
+            job.resultDigest = result.resultDigest
+            job.resultVersion = result.processingVersion
+            job.activeIndexVersion = result.processingVersion
+            job.finishedAt = OffsetDateTime.now()
+            job.lockedAt = null
+            job.lockedBy = null
+            job.leaseExpiresAt = null
+            job.updatedAt = OffsetDateTime.now()
+            job.report.status = "COMPLETED"
+            jobs.save(job)
+        } else {
+            // A review-required or incomplete AI result must fail closed and never
+            // be presented as a completed medical interpretation.
+            fail(job, result.errorCode ?: if (result.reviewRequired) "REVIEW_REQUIRED" else "AI_RESULT_INVALID")
+        }
     }
 
     private fun fail(job: ReportProcessingJobEntity, code: String) {

@@ -17,8 +17,10 @@ class UserSessionEntity(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     val id: Long = 0,
-    @Column(nullable = false, unique = true)
-    val token: String,
+    @Column(name = "jti", nullable = false, unique = true, length = 64)
+    val jti: String,
+    @Column(name = "token_hash", nullable = false, unique = true, length = 64)
+    val tokenHash: String,
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     val user: AppUserEntity,
@@ -26,4 +28,6 @@ class UserSessionEntity(
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
     @Column(name = "expires_at", nullable = false)
     val expiresAt: OffsetDateTime,
+    @Column(name = "revoked_at")
+    var revokedAt: OffsetDateTime? = null,
 )

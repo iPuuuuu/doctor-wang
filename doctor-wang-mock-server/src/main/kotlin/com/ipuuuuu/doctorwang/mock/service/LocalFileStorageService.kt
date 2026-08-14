@@ -32,6 +32,13 @@ class LocalFileStorageService(
         return StoredFile(key, hash)
     }
 
+    override fun retrieve(storageKey: String): java.io.InputStream {
+        val target = Path.of(root).resolve(storageKey).normalize()
+        require(target.startsWith(Path.of(root).normalize())) { "非法文件路径" }
+        require(Files.isRegularFile(target)) { "文件不存在" }
+        return Files.newInputStream(target)
+    }
+
     override fun delete(storageKey: String) {
         val target = Path.of(root).resolve(storageKey).normalize()
         if (target.startsWith(Path.of(root).normalize())) Files.deleteIfExists(target)

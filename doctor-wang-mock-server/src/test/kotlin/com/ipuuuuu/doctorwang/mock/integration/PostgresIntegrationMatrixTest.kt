@@ -3,6 +3,7 @@ package com.ipuuuuu.doctorwang.mock.integration
 import com.ipuuuuu.doctorwang.mock.persistence.entity.*
 import com.ipuuuuu.doctorwang.mock.persistence.repository.*
 import com.ipuuuuu.doctorwang.mock.service.CompensationCleanupService
+import com.ipuuuuu.doctorwang.mock.service.PasswordHasher
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Tag
@@ -31,19 +32,29 @@ class PostgresIntegrationMatrixTest {
     @Autowired lateinit var idempotency: ReportUploadIdempotencyRepository
     @Autowired lateinit var cleanup: CompensationCleanupService
     @Autowired lateinit var cleanupTasks: ReportCleanupTaskRepository
+    @Autowired lateinit var passwordHasher: PasswordHasher
 
     @Test
-    fun `flyway v1 through v7 and hibernate validation start successfully`() {
+    fun `flyway v1 through v8 and hibernate validation start successfully`() {
         val versions = flyway.info().applied().map { it.version?.version }
-        assertTrue((1..7).all { it.toString() in versions })
-        assertEquals(1, jdbc.queryForObject("select count(*) from app_user where account = 'demo@doctorwang.app'", Int::class.java))
-        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.tables where table_name = 'report_cleanup_task'", Int::class.java))
+        assertTrue((1..8).all { it.toString() in versions })
+        assertEquals(1, jdbc.queryForObject("select count(*) from app_user where account = 'demo@doctorwang.app'", Int::class.java) ?: fail("demo user must exist"))
+        val demoHash = jdbc.queryForObject("select password_hash from app_user where account = 'demo@doctorwang.app'", String::class.java)
+            ?: fail("demo password hash must exist")
+        assertTrue(demoHash.startsWith("${'$'}2b${'$'}12${'$'}"), "all migrated passwords must be BCrypt cost 12")
+        assertTrue(passwordHasher.matches("123456", demoHash), "the pre-migration credential must remain usable")
+        assertEquals(0, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'app_user' and column_name = 'password'", Int::class.java) ?: fail("legacy password column check returned null"))
+        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.tables where table_name = 'report_cleanup_task'", Int::class.java) ?: fail("report cleanup table must exist"))
+        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'app_user' and column_name = 'password_hash' and is_nullable = 'NO'", Int::class.java) ?: fail("password_hash must be non-null"))
+        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'user_session' and column_name = 'token_hash' and character_maximum_length = 64", Int::class.java) ?: fail("token_hash must be varchar(64)"))
+        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'user_session' and column_name = 'jti' and is_nullable = 'NO'", Int::class.java) ?: fail("jti must be non-null"))
+        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.table_constraints where table_name = 'user_session' and constraint_name = 'uk_user_session_jti' and constraint_type = 'UNIQUE'", Int::class.java) ?: fail("JTI uniqueness constraint must exist"))
     }
 
     @Test
     fun `idempotency replay conflict expiry and user isolation are persisted`() {
         val first = users.findByAccount("demo@doctorwang.app")!!
-        val second = users.save(AppUserEntity(userId = "integration-user", account = "integration@example.test", password = "x", name = "Integration", age = 30, height = 170, weight = 70f))
+        val second = users.save(AppUserEntity(userId = "integration-user", account = "integration@example.test", passwordHash = "{noop}x", name = "Integration", age = 30, height = 170, weight = 70f))
         val report = reports.save(MedicalReportEntity(user = first, title = "idempotency", reportDate = "", reportType = "", summary = "", status = "PROCESSING"))
         val job = jobs.save(ReportProcessingJobEntity(UUID.randomUUID(), report, status = "STORED", stage = "STORED", traceId = "integration", nextAttemptAt = OffsetDateTime.now()))
         idempotency.save(ReportUploadIdempotencyEntity(user = first, idempotencyKey = "replay-key", requestDigest = "a".repeat(64), report = report, processingJobId = job.id, responseSnapshot = "{}", expiresAt = OffsetDateTime.now().plusHours(1)))

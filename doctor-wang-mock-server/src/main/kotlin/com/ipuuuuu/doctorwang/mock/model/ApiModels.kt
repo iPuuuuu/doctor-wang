@@ -22,16 +22,39 @@ data class ChatMessageResponse(
 )
 
 data class ChatResponse(
-    val answer: String,
+    val message: String,
+    val warnings: List<String> = emptyList(),
+    val citations: List<ChatCitationResponse> = emptyList(),
+    val traceId: String? = null,
 )
 
-data class UploadRequest(
-    val fileName: String,
+data class ChatCitationResponse(
+    val sourceType: String,
+    val sourceId: String,
+    val pageNo: Int? = null,
+    val excerpt: String,
+    val confidence: Double? = null,
 )
 
-data class UploadResponse(
-    val reportId: Long,
-    val status: String,
+data class RegisterRequest(
+    val account: String,
+    val password: String,
+    val name: String,
+    val age: Int,
+    val height: Int,
+    val weight: Float,
+)
+
+data class ProfileUpdateRequest(
+    val name: String? = null,
+    val age: Int? = null,
+    val height: Int? = null,
+    val weight: Float? = null,
+)
+
+data class PasswordChangeRequest(
+    val oldPassword: String,
+    val newPassword: String,
 )
 
 data class UserProfileResponse(
@@ -57,9 +80,4 @@ data class MedicalReportResponse(
     val summary: String,
     val findings: List<String>,
     val suggestions: List<String>,
-)
-
-data class ChatRule(
-    val keyword: String,
-    val answer: String,
 )

@@ -44,21 +44,24 @@ class GlobalExceptionHandler {
     fun handleSecurity(error: SecurityException): ResponseEntity<ApiError> {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
             .body(ApiError("AUTHENTICATION_REQUIRED", error.message ?: "未登录或登录已失效", TraceIdContext.get()))
+    }
 
     @ExceptionHandler(MissingServletRequestPartException::class)
-    fun handleMissingPart(error: MissingServletRequestPartException): ResponseEntity<ApiError> = ResponseEntity.badRequest().body(ApiError("FILE_REQUIRED", "必须上传文件", TraceIdContext.get()))
+    fun handleMissingPart(error: MissingServletRequestPartException): ResponseEntity<ApiError> =
+        ResponseEntity.badRequest().body(ApiError("FILE_REQUIRED", "必须上传文件", TraceIdContext.get()))
 
     @ExceptionHandler(MissingServletRequestParameterException::class)
-    fun handleMissingParameter(error: MissingServletRequestParameterException): ResponseEntity<ApiError> = ResponseEntity.badRequest().body(ApiError("INVALID_REQUEST", "缺少请求参数", TraceIdContext.get()))
-    }
+    fun handleMissingParameter(error: MissingServletRequestParameterException): ResponseEntity<ApiError> =
+        ResponseEntity.badRequest().body(ApiError("INVALID_REQUEST", "缺少请求参数", TraceIdContext.get()))
 
     private fun statusFor(code: String): HttpStatus = when (code) {
         "UNSUPPORTED_MEDIA_TYPE" -> HttpStatus.UNSUPPORTED_MEDIA_TYPE
         "MALWARE_DETECTED" -> HttpStatus.UNPROCESSABLE_ENTITY
         "FILE_TOO_LARGE" -> HttpStatus.PAYLOAD_TOO_LARGE
         "REPORT_NOT_FOUND", "PROCESSING_JOB_NOT_FOUND" -> HttpStatus.NOT_FOUND
-        "REPORT_PROCESSING_CONFLICT", "DUPLICATE_UPLOAD", "IDEMPOTENCY_KEY_REUSED", "REPORT_NOT_RETRYABLE", "RETRY_LIMIT_EXCEEDED" -> HttpStatus.CONFLICT
-        "STORAGE_FAILED", "AI_SERVICE_UNAVAILABLE", "AI_SERVICE_NOT_CONFIGURED" -> HttpStatus.SERVICE_UNAVAILABLE
+        "ACCOUNT_EXISTS", "REPORT_PROCESSING_CONFLICT", "DUPLICATE_UPLOAD", "IDEMPOTENCY_KEY_REUSED", "REPORT_NOT_RETRYABLE", "RETRY_LIMIT_EXCEEDED" -> HttpStatus.CONFLICT
+        "STORAGE_FAILED", "AI_SERVICE_UNAVAILABLE", "AI_SERVICE_NOT_CONFIGURED", "AUTH_CONFIGURATION_INVALID" -> HttpStatus.SERVICE_UNAVAILABLE
+        "AUTHENTICATION_FAILED", "AUTHENTICATION_REQUIRED" -> HttpStatus.UNAUTHORIZED
         "PROCESSING_TIMEOUT" -> HttpStatus.GATEWAY_TIMEOUT
         "AI_RESULT_INVALID" -> HttpStatus.BAD_GATEWAY
         else -> HttpStatus.BAD_REQUEST

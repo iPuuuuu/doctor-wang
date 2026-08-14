@@ -4,6 +4,7 @@ import com.ipuuuuu.doctorwang.mock.persistence.entity.AppUserEntity
 
 data class AuthenticatedUser(
     val sessionToken: String,
+    val sessionId: String,
     val user: AppUserEntity,
 )
 

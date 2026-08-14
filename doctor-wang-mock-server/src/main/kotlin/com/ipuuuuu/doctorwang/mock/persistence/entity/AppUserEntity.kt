@@ -18,18 +18,18 @@ class AppUserEntity(
     val userId: String,
     @Column(nullable = false, unique = true)
     val account: String,
+    @Column(name = "password_hash", nullable = false)
+    var passwordHash: String,
     @Column(nullable = false)
-    val password: String,
+    var name: String,
     @Column(nullable = false)
-    val name: String,
+    var age: Int,
     @Column(nullable = false)
-    val age: Int,
+    var height: Int,
     @Column(nullable = false)
-    val height: Int,
-    @Column(nullable = false)
-    val weight: Float,
+    var weight: Float,
     @Column(name = "created_at", nullable = false)
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
     @Column(name = "updated_at", nullable = false)
-    val updatedAt: OffsetDateTime = OffsetDateTime.now(),
+    var updatedAt: OffsetDateTime = OffsetDateTime.now(),
 )

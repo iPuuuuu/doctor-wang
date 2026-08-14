@@ -4,12 +4,18 @@ import com.ipuuuuu.doctorwang.mock.config.AuthContext
 import com.ipuuuuu.doctorwang.mock.config.ApiException
 import com.ipuuuuu.doctorwang.mock.config.TraceIdContext
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.ipuuuuu.doctorwang.mock.model.*
+import com.ipuuuuu.doctorwang.mock.model.ReportDetailV1Response
+import com.ipuuuuu.doctorwang.mock.model.ReportListItemResponse
+import com.ipuuuuu.doctorwang.mock.model.ReportListResponse
+import com.ipuuuuu.doctorwang.mock.model.ReportStatusResponse
+import com.ipuuuuu.doctorwang.mock.model.ReportUploadResponse
 import com.ipuuuuu.doctorwang.mock.persistence.entity.*
 import com.ipuuuuu.doctorwang.mock.persistence.repository.*
+import org.springframework.data.domain.PageRequest
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
 import org.springframework.web.multipart.MultipartFile
+import java.io.InputStream
 import java.time.OffsetDateTime
 import java.util.UUID
 
@@ -34,7 +40,14 @@ class ReportProcessingService(
         val user = AuthContext.get()?.user ?: throw SecurityException("未登录或登录已失效")
         validate(file)
         val scan = virusScanner.scan(file)
-        if (!scan.clean) throw ApiException("MALWARE_DETECTED", "文件未通过安全扫描")
+        if (!scan.clean) {
+            // SEC-001 fail-closed：扫描服务不可用同样拒绝上传，绝不默认放行。
+            throw if (scan.reason == ScanReasons.SCANNER_UNAVAILABLE) {
+                ApiException("SCAN_UNAVAILABLE", "安全扫描服务不可用，文件上传已被拒绝，请稍后重试")
+            } else {
+                ApiException("MALWARE_DETECTED", "文件未通过安全扫描")
+            }
+        }
         val digest = requestDigest(file.bytes.sha256(), reportDate, reportType)
         if (!idempotencyKey.isNullOrBlank()) {
             require(idempotencyKey.length <= 128) { "Idempotency-Key 长度不能超过 128" }
@@ -77,6 +90,38 @@ class ReportProcessingService(
 
     @Transactional
     fun delete(id: Long) { val report = ownedReport(id); files.findByReport(report)?.let { storage.delete(it.storageKey) }; reports.delete(report) }
+
+    @Transactional(readOnly = true)
+    fun listByUser(page: Int, size: Int): ReportListResponse {
+        val user = AuthContext.get()?.user ?: throw SecurityException("未登录或登录已失效")
+        val pageable = PageRequest.of(page.coerceAtLeast(0), size.coerceIn(1, 100))
+        val pageResult = reports.findAllByUser(user, pageable)
+        return ReportListResponse(
+            items = pageResult.content.map { report ->
+                ReportListItemResponse(
+                    reportId = report.id,
+                    title = report.title,
+                    reportDate = report.reportDate,
+                    reportType = report.reportType,
+                    status = report.status,
+                    summary = if (report.status == "COMPLETED") report.summary else null,
+                    createdAt = report.createdAt,
+                )
+            },
+            page = pageResult.number,
+            size = pageResult.size,
+            totalPages = pageResult.totalPages,
+            totalElements = pageResult.totalElements,
+        )
+    }
+
+    @Transactional(readOnly = true)
+    fun getFile(reportId: Long): Pair<InputStream, MedicalReportFileEntity> {
+        val report = ownedReport(reportId)
+        val file = files.findByReport(report) ?: throw NoSuchElementException("报告文件不存在")
+        val stream = try { storage.retrieve(file.storageKey) } catch (e: Exception) { throw ApiException("FILE_RETRIEVAL_FAILED", "文件读取失败") }
+        return stream to file
+    }
 
     private fun validate(file: MultipartFile) {
         if (file.isEmpty) throw ApiException("FILE_EMPTY", "文件不能为空")
