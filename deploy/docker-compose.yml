@@ -6,7 +6,7 @@ services:
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-doctor_wang}
       POSTGRES_USER: ${POSTGRES_USER:-doctor_wang}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-doctor_wang}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -23,15 +23,54 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      ai-service:
+        condition: service_healthy
     environment:
       SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/${POSTGRES_DB:-doctor_wang}
       SPRING_DATASOURCE_USERNAME: ${POSTGRES_USER:-doctor_wang}
-      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:-doctor_wang}
-      APP_AUTH_TOKEN_PREFIX: ${APP_AUTH_TOKEN_PREFIX:-dw-token}
+      SPRING_DATASOURCE_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD must be set}
+      APP_AUTH_JWT_SECRET: ${APP_AUTH_JWT_SECRET:?APP_AUTH_JWT_SECRET must be set}
+      APP_AUTH_JWT_ISSUER: ${APP_AUTH_JWT_ISSUER:-doctor-wang-backend}
+      APP_AUTH_JWT_AUDIENCE: ${APP_AUTH_JWT_AUDIENCE:-doctor-wang-android}
+      APP_AUTH_JWT_TTL_SECONDS: ${APP_AUTH_JWT_TTL_SECONDS:-3600}
       SERVER_ADDRESS: 0.0.0.0
       PORT: 8080
+      AI_SERVICE_ENABLED: ${AI_SERVICE_ENABLED:-false}
+      AI_SERVICE_BASE_URL: http://ai-service:8000
+      AI_SERVICE_INTERNAL_TOKEN: ${AI_SERVICE_INTERNAL_TOKEN:?AI_SERVICE_INTERNAL_TOKEN must be set}
+      REPORT_FILE_STORAGE_ROOT: /shared-report-files
+      REPORT_PROCESSING_WORKER_ENABLED: ${REPORT_PROCESSING_WORKER_ENABLED:-false}
+    volumes:
+      - report_files:/shared-report-files
     expose:
       - "8080"
+    healthcheck:
+      # DEPLOY-001a：基于 actuator health 端点探活（镜像已内置 curl）
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/actuator/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+
+  ai-service:
+    build:
+      context: ../ai-service
+    container_name: doctor-wang-ai-service
+    restart: unless-stopped
+    environment:
+      DW_AI_INTERNAL_TOKEN: ${AI_SERVICE_INTERNAL_TOKEN:?AI_SERVICE_INTERNAL_TOKEN must be set}
+      DW_AI_OBJECT_STORE_ROOT: /shared-report-files
+      DW_AI_JOB_STATE_PATH: /data/ai-jobs.sqlite3
+    volumes:
+      - report_files:/shared-report-files:ro
+      - ai_job_state:/data
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    expose:
+      - "8000"
 
   nginx:
     image: nginx:1.27-alpine
@@ -41,8 +80,12 @@ services:
       - backend
     ports:
       - "80:80"
+      - "443:443"
     volumes:
       - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ${TLS_CERTS_DIR:?TLS_CERTS_DIR must be set}:/etc/nginx/certs:ro
 
 volumes:
   postgres_data:
+  report_files:
+  ai_job_state:
