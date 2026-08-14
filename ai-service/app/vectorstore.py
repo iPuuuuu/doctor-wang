@@ -68,11 +68,12 @@ def _vector_literal(vector: list[float]) -> str:
 def create_vector_store(database_url: str | None = None) -> InMemoryVectorStore | PgVectorStore:
     """Factory: returns PgVectorStore if database_url is configured, else InMemoryVectorStore.
 
-    PgVectorStore connects to the backend-owned ai_vector_chunk table.
+    PgVectorStore connects to the backend-owned ai_vector_chunk table (Flyway V9:
+    embedding vector(2048), metadata jsonb, unique(namespace, chunk_id)).
     InMemoryVectorStore is used for development/testing when no PostgreSQL is available.
     """
     if database_url:
-        import psycopg2
-        conn = psycopg2.connect(database_url)
+        import psycopg
+        conn = psycopg.connect(database_url)
         return PgVectorStore(conn, table="ai_vector_chunk")
     return InMemoryVectorStore()

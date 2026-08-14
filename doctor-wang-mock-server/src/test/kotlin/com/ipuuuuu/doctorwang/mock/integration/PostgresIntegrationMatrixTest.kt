@@ -35,9 +35,9 @@ class PostgresIntegrationMatrixTest {
     @Autowired lateinit var passwordHasher: PasswordHasher
 
     @Test
-    fun `flyway v1 through v8 and hibernate validation start successfully`() {
+    fun `flyway v1 through v9 and hibernate validation start successfully`() {
         val versions = flyway.info().applied().map { it.version?.version }
-        assertTrue((1..8).all { it.toString() in versions })
+        assertTrue((1..9).all { it.toString() in versions })
         assertEquals(1, jdbc.queryForObject("select count(*) from app_user where account = 'demo@doctorwang.app'", Int::class.java) ?: fail("demo user must exist"))
         val demoHash = jdbc.queryForObject("select password_hash from app_user where account = 'demo@doctorwang.app'", String::class.java)
             ?: fail("demo password hash must exist")
@@ -49,6 +49,11 @@ class PostgresIntegrationMatrixTest {
         assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'user_session' and column_name = 'token_hash' and character_maximum_length = 64", Int::class.java) ?: fail("token_hash must be varchar(64)"))
         assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'user_session' and column_name = 'jti' and is_nullable = 'NO'", Int::class.java) ?: fail("jti must be non-null"))
         assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.table_constraints where table_name = 'user_session' and constraint_name = 'uk_user_session_jti' and constraint_type = 'UNIQUE'", Int::class.java) ?: fail("JTI uniqueness constraint must exist"))
+        // V9: ai_vector_chunk 对齐 PgVectorStore 契约（metadata jsonb / vector(2048) / unique(namespace, chunk_id)）
+        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.tables where table_name = 'ai_vector_chunk'", Int::class.java) ?: fail("ai_vector_chunk table must exist"))
+        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'ai_vector_chunk' and column_name = 'metadata' and data_type = 'jsonb'", Int::class.java) ?: fail("ai_vector_chunk.metadata must be jsonb"))
+        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'ai_vector_chunk' and column_name = 'embedding' and udt_name = 'vector'", Int::class.java) ?: fail("ai_vector_chunk.embedding must be pgvector vector"))
+        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.table_constraints where table_name = 'ai_vector_chunk' and constraint_type = 'UNIQUE' and constraint_name = 'ai_vector_chunk_namespace_chunk_id_key'", Int::class.java) ?: fail("ai_vector_chunk unique(namespace,chunk_id) must exist"))
     }
 
     @Test
