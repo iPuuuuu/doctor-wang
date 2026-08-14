@@ -12,5 +12,5 @@ interface ReportUploadIdempotencyRepository : JpaRepository<ReportUploadIdempote
     fun findByUserAndIdempotencyKeyAndExpiresAtAfter(user: AppUserEntity, idempotencyKey: String, now: OffsetDateTime): ReportUploadIdempotencyEntity?
     @Modifying
     @Query("delete from ReportUploadIdempotencyEntity i where i.expiresAt <= :now")
-    fun deleteExpired(now: OffsetDateTime): Long
+    fun deleteExpired(now: OffsetDateTime): Int
 }

@@ -20,7 +20,7 @@ class CompensationCleanupService(
     }
 
     @Transactional
-    fun cleanupExpiredIdempotency(now: OffsetDateTime = OffsetDateTime.now()): Long = idempotency.deleteExpired(now)
+    fun cleanupExpiredIdempotency(now: OffsetDateTime = OffsetDateTime.now()): Int = idempotency.deleteExpired(now)
 
     @Transactional
     fun cleanupPending(now: OffsetDateTime = OffsetDateTime.now(), limit: Int = 50): Int {

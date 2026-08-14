@@ -60,7 +60,8 @@ class PostgresIntegrationMatrixTest {
         assertEquals(1, jdbc.queryForObject("select count(*) from app_user where account = 'demo@doctorwang.app'", Int::class.java) ?: fail("demo user must exist"))
         val demoHash = jdbc.queryForObject("select password_hash from app_user where account = 'demo@doctorwang.app'", String::class.java)
             ?: fail("demo password hash must exist")
-        assertTrue(demoHash.startsWith("${'$'}2b${'$'}12${'$'}"), "all migrated passwords must be BCrypt cost 12")
+        // pgcrypto gen_salt('bf') 产生 $2a$ 前缀，Spring BCrypt 产生 $2b$；两者均可由 PasswordHasher 验证
+        assertTrue(demoHash.startsWith("${'$'}2a${'$'}12${'$'}") || demoHash.startsWith("${'$'}2b${'$'}12${'$'}"), "all migrated passwords must be BCrypt cost 12")
         assertTrue(passwordHasher.matches("123456", demoHash), "the pre-migration credential must remain usable")
         assertEquals(0, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'app_user' and column_name = 'password'", Int::class.java) ?: fail("legacy password column check returned null"))
         assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.tables where table_name = 'report_cleanup_task'", Int::class.java) ?: fail("report cleanup table must exist"))
