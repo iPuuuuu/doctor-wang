@@ -79,7 +79,7 @@ fun HomeScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         item {
-            WelcomeBanner(userName = uiState.userName, onSettingsClick = onSettingsClick)
+            WelcomeBanner(userName = uiState.userName)
         }
         item {
             HealthOverviewCard(
@@ -125,29 +125,12 @@ fun HomeScreen(
                     modifier = Modifier.weight(1f),
                 )
                 HomeEntryCard(
-                    title = "服务设置",
-                    subtitle = "检查局域网连接状态",
-                    accent = "📶",
+                    title = "账号设置",
+                    subtitle = "修改密码、退出登录",
+                    accent = "⚙️",
                     onClick = onSettingsClick,
                     modifier = Modifier.weight(1f),
                 )
-            }
-        }
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-            ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    Text(text = "真机使用提醒", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold)
-                    Text(
-                        text = "如果你正在手机上演示，请先确认服务设置中的地址已经改成电脑局域网 IP，并且后端服务正在运行。",
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
             }
         }
         item {
@@ -176,7 +159,6 @@ fun HomeScreen(
 @Composable
 private fun WelcomeBanner(
     userName: String,
-    onSettingsClick: () -> Unit,
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -191,12 +173,6 @@ private fun WelcomeBanner(
             Text(
                 text = "今天也可以从健康档案、报告分析或 AI 问诊开始。",
                 style = MaterialTheme.typography.bodyMedium,
-            )
-            Text(
-                text = "真机联调遇到问题？去服务设置检查连接",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.clickable(onClick = onSettingsClick),
             )
         }
     }

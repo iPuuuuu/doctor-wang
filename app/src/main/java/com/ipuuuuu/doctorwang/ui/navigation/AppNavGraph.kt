@@ -52,7 +52,7 @@ fun AppNavGraph(navController: NavHostController) {
                         popUpTo(Screen.Login.route) { inclusive = true }
                     }
                 },
-                onOpenSettings = { navController.navigate(Screen.Settings.route) },
+                onRegisterClick = { navController.navigate(Screen.Register.route) },
             )
         }
         composable(Screen.Register.route) {

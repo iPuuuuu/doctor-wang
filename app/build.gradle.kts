@@ -8,11 +8,12 @@ plugins {
     id("org.jetbrains.kotlin.plugin.serialization")
 }
 
-val debugDefaultServerUrl = "http://10.0.2.2:8080/"
+// 生产默认地址：调试包也直连已部署的后端（无需设置页）
+val debugDefaultServerUrl = "https://120.55.186.220/"
 val releaseDefaultServerUrl = providers
     .gradleProperty("doctorWangReleaseBaseUrl")
     .orElse(providers.environmentVariable("DOCTOR_WANG_RELEASE_BASE_URL"))
-    .orElse("https://doctor-wang-demo.example.com/")
+    .orElse("https://120.55.186.220/")
     .get()
 
 android {
