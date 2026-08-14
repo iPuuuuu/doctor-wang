@@ -42,7 +42,8 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 - **真实全链路已通过（图片/扫描件）**：通义 `qwen-vl-ocr` 识别 → 智谱 `embedding-3`（2048 维）语义检索 → DeepSeek `deepseek-v4-flash` 生成；脱敏图片 ingest COMPLETED → rag/query OK（citation 1，答案基于 OCR 原文，零编造）；OCR 文本不足时正确走 REVIEW_REQUIRED。
 - 实现：`DashScopeOcrProvider`（ai-service，89 pytest 全绿）；`deploy/.env.example` 含 `DW_AI_*`（LLM/EMBEDDING/OCR）占位。
 - 探测结论：Claude/Gemini 中转站（code.newcli.com）无 embedding 模型，不作为 provider。
-- 仍待环境：Android 真机验证、release APK、ECS 实际部署；TLS/Nginx 冒烟、ClamAV 真实扫描（Docker）。
+- **ECS 生产部署完成（2026-08-14）**：阿里云 120.55.186.220 全栈上线（PostgreSQL+pgvector / backend / AI / Nginx TLS），Flyway V1-V10、真实 AI 全链路（通义 OCR 配置 + 智谱 embedding-3 2048 维 pgvector 落库 + DeepSeek 生成）外部 HTTPS 200 验证通过；自签证书为已知限制（需域名+受信任证书）。CI 全绿（含 Testcontainers）。
+- 仍待：Android 真机验证、release APK；域名证书；ClamAV 启用；监控告警（DEPLOY-001b）。
 - 2026-08-14 本地 PG17+pgvector 实测：Flyway V1–V10 应用、Hibernate validate 通过、PgVectorStore 真实 2048 维向量、后端↔AI 全链路（上传→AI 处理→COMPLETED→聊天 citation 1）——期间修复 7 个真实生产 bug（V6 undo 重复、V9 HNSW 2000 维上限、V10 weight 类型、actuator 过滤、worker 事务自调用、实体缺无参构造器、chat namespace 用户 ID 错误；AI_SERVICE_* env 改 APP_AI_SERVICE_*）。
 - 证据：`.ai/handoffs/RAG-001/architect-pgvector-fullchain-verification.md`、`architect-real-llm-verification.md`、`architect-real-embeddings.md`、`architect-real-ocr.md`。
 
