@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  backend:
+    name: Backend tests (JDK 21)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Backend unit + contract tests, bootJar
+        working-directory: doctor-wang-mock-server
+        run: ./gradlew test bootJar --no-daemon
+
+  backend-integration:
+    name: PostgreSQL/Testcontainers integration (Docker)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Flyway V1-V9 + schema matrix (pgvector/pg16)
+        working-directory: doctor-wang-mock-server
+        run: ./gradlew postgresIntegrationTest --no-daemon
+
+  android:
+    name: Android unit tests + assembleDebug
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+      - uses: android-actions/setup-android@v3
+      - name: Contract tests + debug APK
+        run: ./gradlew :app:testDebugUnitTest :app:assembleDebug --no-daemon
+
+  ai-service:
+    name: AI service pytest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install and test
+        working-directory: ai-service
+        run: |
+          pip install -e ".[dev]"
+          pytest -q
+
+  checks:
+    name: Whitespace checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: git diff --check against base
+        run: |
+          BASE=$(git merge-base HEAD origin/main 2>/dev/null || echo HEAD)
+          git diff --check "$BASE" HEAD
