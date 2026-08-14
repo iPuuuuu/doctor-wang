@@ -21,7 +21,7 @@ class AuthTokenFilter(
     override fun shouldNotFilter(request: HttpServletRequest): Boolean {
         val path = applicationPath(request)
         return (request.method == "POST" && (path == "/api/login" || path == "/api/register")) ||
-            (request.method == "GET" && (path == "/healthz" || path == "/"))
+            (request.method == "GET" && (path == "/healthz" || path == "/" || path == "/actuator/health"))
     }
 
     private fun applicationPath(request: HttpServletRequest): String {

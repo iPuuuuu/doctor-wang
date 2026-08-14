@@ -18,4 +18,8 @@ create table ai_vector_chunk (
 );
 
 create index if not exists idx_ai_vector_chunk_namespace on ai_vector_chunk(namespace);
-create index if not exists idx_ai_vector_chunk_embedding on ai_vector_chunk using hnsw (embedding vector_cosine_ops);
+-- 注意：pgvector 的 HNSW/ivfflat ANN 索引上限 2000 维；vector(2048)（智谱 embedding-3）
+-- 不能建 ANN 索引，故此处仅保留 namespace btree 索引，检索走精确扫描
+-- （ORDER BY embedding <=> 查询向量，个人健康场景按 namespace 数据量小，精确扫描足够）。
+-- 未来若需 ANN：切换 ≤2000 维的 embedding provider 后再加
+--   create index ... using hnsw (embedding vector_cosine_ops);

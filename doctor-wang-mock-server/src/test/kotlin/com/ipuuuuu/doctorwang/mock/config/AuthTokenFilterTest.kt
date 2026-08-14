@@ -60,6 +60,7 @@ class AuthTokenFilterTest {
             MockHttpServletRequest("POST", "/api/register").apply { servletPath = "/api/register" },
             MockHttpServletRequest("GET", "/healthz").apply { servletPath = "/healthz" },
             MockHttpServletRequest("GET", "/").apply { servletPath = "/" },
+            MockHttpServletRequest("GET", "/actuator/health").apply { servletPath = "/actuator/health" },
         ).forEach { request ->
             val chain = MockFilterChain()
 

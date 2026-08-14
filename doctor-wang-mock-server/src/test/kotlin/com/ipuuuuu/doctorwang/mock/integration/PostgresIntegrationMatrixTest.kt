@@ -35,9 +35,9 @@ class PostgresIntegrationMatrixTest {
     @Autowired lateinit var passwordHasher: PasswordHasher
 
     @Test
-    fun `flyway v1 through v9 and hibernate validation start successfully`() {
+    fun `flyway v1 through v10 and hibernate validation start successfully`() {
         val versions = flyway.info().applied().map { it.version?.version }
-        assertTrue((1..9).all { it.toString() in versions })
+        assertTrue((1..10).all { it.toString() in versions })
         assertEquals(1, jdbc.queryForObject("select count(*) from app_user where account = 'demo@doctorwang.app'", Int::class.java) ?: fail("demo user must exist"))
         val demoHash = jdbc.queryForObject("select password_hash from app_user where account = 'demo@doctorwang.app'", String::class.java)
             ?: fail("demo password hash must exist")
@@ -54,6 +54,8 @@ class PostgresIntegrationMatrixTest {
         assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'ai_vector_chunk' and column_name = 'metadata' and data_type = 'jsonb'", Int::class.java) ?: fail("ai_vector_chunk.metadata must be jsonb"))
         assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'ai_vector_chunk' and column_name = 'embedding' and udt_name = 'vector'", Int::class.java) ?: fail("ai_vector_chunk.embedding must be pgvector vector"))
         assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.table_constraints where table_name = 'ai_vector_chunk' and constraint_type = 'UNIQUE' and constraint_name = 'ai_vector_chunk_namespace_chunk_id_key'", Int::class.java) ?: fail("ai_vector_chunk unique(namespace,chunk_id) must exist"))
+        // V10: app_user.weight 对齐实体 Float（float4）
+        assertEquals(1, jdbc.queryForObject("select count(*) from information_schema.columns where table_name = 'app_user' and column_name = 'weight' and data_type = 'real'", Int::class.java) ?: fail("app_user.weight must be real"))
     }
 
     @Test
