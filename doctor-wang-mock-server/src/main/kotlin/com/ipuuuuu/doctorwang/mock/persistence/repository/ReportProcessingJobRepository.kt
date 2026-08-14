@@ -10,6 +10,7 @@ import java.util.UUID
 
 interface ReportProcessingJobRepository : JpaRepository<ReportProcessingJobEntity, UUID> {
     fun findTopByReportOrderByCreatedAtDesc(report: MedicalReportEntity): ReportProcessingJobEntity?
+    fun deleteAllByReport(report: MedicalReportEntity)
     @Query(value = "select * from report_processing_job j where j.status in ('STORED','RETRYING') and coalesce(j.next_attempt_at, now()) <= :at and (j.lease_expires_at is null or j.lease_expires_at < :at) order by j.created_at for update skip locked", nativeQuery = true)
     fun findClaimableForUpdate(at: java.time.OffsetDateTime, pageable: Pageable): List<ReportProcessingJobEntity>
     @Modifying

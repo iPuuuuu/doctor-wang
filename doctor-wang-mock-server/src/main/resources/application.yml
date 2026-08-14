@@ -37,6 +37,9 @@ app:
   file-storage:
     root: ${REPORT_FILE_STORAGE_ROOT:./data/report-files}
     signing-secret: ${REPORT_FILE_STORAGE_SIGNING_SECRET:dev-only-change-me}
+    # 对象生命周期：0=禁用（默认，医疗数据不自动删）；>0 时按报告更新时间清理过期对象。
+    retention-days: ${REPORT_FILE_RETENTION_DAYS:0}
+    cleanup-interval-ms: ${REPORT_FILE_CLEANUP_INTERVAL_MS:86400000}
   report-processing:
     worker-enabled: ${REPORT_PROCESSING_WORKER_ENABLED:false}
     poll-interval-ms: ${REPORT_PROCESSING_POLL_INTERVAL_MS:5000}

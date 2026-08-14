@@ -6,4 +6,5 @@ import org.springframework.data.jpa.repository.JpaRepository
 
 interface MedicalReportFileRepository : JpaRepository<MedicalReportFileEntity, Long> {
     fun findByReport(report: MedicalReportEntity): MedicalReportFileEntity?
+    fun deleteAllByReport(report: MedicalReportEntity)
 }
