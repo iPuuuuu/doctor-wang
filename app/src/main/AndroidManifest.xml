@@ -5,7 +5,7 @@
 
     <application
         android:name=".DoctorWangApplication"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:label="Doctor-Wang"
         android:supportsRtl="true"
         android:theme="@style/Theme.DoctorWang">
