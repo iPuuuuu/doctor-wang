@@ -3,13 +3,19 @@ package com.ipuuuuu.doctorwang.mock.integration
 import com.ipuuuuu.doctorwang.mock.persistence.entity.*
 import com.ipuuuuu.doctorwang.mock.persistence.repository.*
 import com.ipuuuuu.doctorwang.mock.service.CompensationCleanupService
+import com.ipuuuuu.doctorwang.mock.service.LocalFileStorageService
 import com.ipuuuuu.doctorwang.mock.service.PasswordHasher
 import org.flywaydb.core.Flyway
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Tag
 import org.junit.jupiter.api.Test
 import org.springframework.beans.factory.annotation.Autowired
+import org.springframework.boot.SpringBootConfiguration
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration
+import org.springframework.boot.autoconfigure.domain.EntityScan
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.context.annotation.Import
+import org.springframework.data.jpa.repository.config.EnableJpaRepositories
 import org.springframework.jdbc.core.JdbcTemplate
 import org.springframework.test.context.DynamicPropertyRegistry
 import org.springframework.test.context.DynamicPropertySource
@@ -20,9 +26,22 @@ import java.nio.file.Files
 import java.time.OffsetDateTime
 import java.util.UUID
 
+/**
+ * 持久层聚焦上下文：本测试只验证 Flyway migration、Hibernate schema 校验与仓库行为，
+ * 不启动 web/service 层。不使用 @SpringBootTest 默认的应用级组件扫描——实测中扫描
+ * 应用包会改变自动配置处理顺序，导致 HibernateJpaAutoConfiguration 的
+ * entityManagerFactory 被 @ConditionalOnMissingBean 回退（jpaSharedEM 无法解析）。
+ */
+@SpringBootConfiguration
+@EnableAutoConfiguration
+@EnableJpaRepositories(basePackages = ["com.ipuuuuu.doctorwang.mock.persistence.repository"])
+@EntityScan(basePackages = ["com.ipuuuuu.doctorwang.mock.persistence.entity"])
+@Import(PasswordHasher::class, LocalFileStorageService::class, CompensationCleanupService::class)
+class PersistenceTestConfig
+
 @Tag("integration")
 @Testcontainers
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
+@SpringBootTest(classes = [PersistenceTestConfig::class], webEnvironment = SpringBootTest.WebEnvironment.NONE)
 class PostgresIntegrationMatrixTest {
     @Autowired lateinit var flyway: Flyway
     @Autowired lateinit var jdbc: JdbcTemplate
