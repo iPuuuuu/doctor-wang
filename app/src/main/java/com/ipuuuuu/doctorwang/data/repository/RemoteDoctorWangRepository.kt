@@ -185,7 +185,8 @@ class RemoteDoctorWangRepository @Inject constructor(
     }
 
     suspend fun testConnection(): Result<Unit> {
-        return networkCall { api().getProfile(); Unit }
+        // 用公开健康检查端点验证连通性，不要求登录
+        return networkCall { api().healthz(); Unit }
     }
 
     private suspend fun api() = networkProvider.createApi(sessionManager.getServerUrl())

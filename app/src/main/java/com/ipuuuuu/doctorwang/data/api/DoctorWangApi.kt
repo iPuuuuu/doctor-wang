@@ -160,6 +160,10 @@ data class ReportListResponse(
 )
 
 interface DoctorWangApi {
+    // 公开健康检查（AuthTokenFilter 白名单），用于"测试连接"无需登录
+    @GET("/healthz")
+    suspend fun healthz(): Map<String, String>
+
     @POST("/api/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
 
