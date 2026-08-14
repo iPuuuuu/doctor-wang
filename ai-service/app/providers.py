@@ -24,13 +24,40 @@ class OpenAICompatibleEmbeddingProvider:
         return values
 
 
-class ConfiguredOcrProvider:
-    def __init__(self, endpoint: str, api_key: str | None, timeout: float = 15): self.endpoint, self.api_key, self.timeout = endpoint, api_key, timeout
+class DashScopeOcrProvider:
+    """DashScope (Tongyi) qwen-vl-ocr adapter via the OpenAI-compatible multimodal chat endpoint.
 
-    def extract(self, data: bytes, content_type: str):
+    Returns the DocumentTypeRouter contract: a list of {"pageNo", "text", "confidence"}.
+    qwen-vl-ocr does not expose per-page confidence; 0.9 is a conservative fixed default.
+    """
+
+    def __init__(self, endpoint: str, api_key: str | None, model: str = "qwen-vl-ocr", timeout: float = 30):
+        self.endpoint, self.api_key, self.model, self.timeout = endpoint, api_key, model, timeout
+
+    def extract(self, data: bytes, content_type: str) -> list[dict]:
         import base64
-        body = _post_json(self.endpoint, {"contentType": content_type, "fileBase64": base64.b64encode(data).decode()}, self.api_key, self.timeout)
-        return body["pages"]
+        mime = (content_type or "image/png").split(";")[0].strip()
+        body = _post_json(
+            self.endpoint,
+            {
+                "model": self.model,
+                "messages": [
+                    {
+                        "role": "user",
+                        "content": [
+                            {
+                                "type": "image_url",
+                                "image_url": {"url": f"data:{mime};base64,{base64.b64encode(data).decode()}"},
+                            }
+                        ],
+                    }
+                ],
+            },
+            self.api_key,
+            self.timeout,
+        )
+        text = body["choices"][0]["message"]["content"]
+        return [{"pageNo": 1, "text": text, "confidence": 0.9}]
 
 
 class OpenAICompatibleGenerationProvider:

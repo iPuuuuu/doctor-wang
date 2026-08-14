@@ -16,6 +16,7 @@ class Settings(BaseSettings):
     object_store_root: str = ".data/objects"
     ocr_endpoint: str | None = None
     ocr_api_key: str | None = None
+    ocr_model: str = "qwen-vl-ocr"
     embedding_endpoint: str | None = None
     embedding_api_key: str | None = None
     llm_endpoint: str | None = None

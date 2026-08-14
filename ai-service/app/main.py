@@ -10,7 +10,7 @@ from .embeddings import FakeEmbeddingProvider
 from .vectorstore import InMemoryVectorStore, VectorRecord, create_vector_store
 from .graph import build_rag_graph
 from .jobs import JobRepository
-from .providers import ConfiguredOcrProvider, OpenAICompatibleEmbeddingProvider, OpenAICompatibleGenerationProvider
+from .providers import DashScopeOcrProvider, OpenAICompatibleEmbeddingProvider, OpenAICompatibleGenerationProvider
 from .safety import evaluate_medical_risk
 from .agent_schemas import AgentRequest, AgentResponse
 from .agent_graph import agent_graph, AgentState
@@ -19,7 +19,7 @@ app = FastAPI(title="Doctor-Wang AI Service", version="0.2.0")
 store = create_vector_store(settings.database_url)
 embedder = OpenAICompatibleEmbeddingProvider(settings.embedding_endpoint, settings.embedding_api_key, settings.embedding_model, settings.embedding_dimensions, settings.provider_timeout_seconds) if settings.embedding_endpoint else FakeEmbeddingProvider(settings.embedding_dimensions, settings.embedding_model)
 generator = OpenAICompatibleGenerationProvider(settings.llm_endpoint, settings.llm_api_key, settings.llm_model, settings.provider_timeout_seconds) if settings.llm_endpoint else None
-ocr = ConfiguredOcrProvider(settings.ocr_endpoint, settings.ocr_api_key, settings.provider_timeout_seconds) if settings.ocr_endpoint else None
+ocr = DashScopeOcrProvider(settings.ocr_endpoint, settings.ocr_api_key, settings.ocr_model, settings.provider_timeout_seconds) if settings.ocr_endpoint else None
 router = DocumentTypeRouter(image=ocr) if ocr else DocumentTypeRouter()
 rag_graph = build_rag_graph()
 job_repo = JobRepository(settings.job_state_path)
