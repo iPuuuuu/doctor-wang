@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:16
+    image: pgvector/pgvector:pg16  # pgvector 扩展（V6/V9 依赖，与 Testcontainers 一致）
     container_name: doctor-wang-postgres
     restart: unless-stopped
     environment:
