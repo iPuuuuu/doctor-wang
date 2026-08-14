@@ -22,7 +22,7 @@ Full state machine: `.ai/workflows/task-lifecycle.md`
 | ID | Task | Priority | Dependencies | Status |
 |---|---|---|---|---|
 | ARCH-001 | 建立项目架构 | P2 | — | ACCEPTED ✅ |
-| RAG-001 | 完成 RAG 系统 | P1 | BACKEND-001, CHAT-001 | ACCEPTED ⚠️（真实检索 E2E 已验证：智谱 embedding-3 2048 维 + DeepSeek 生成，2026-08-14；仅 OCR 仍为 mock） |
+| RAG-001 | 完成 RAG 系统 | P1 | BACKEND-001, CHAT-001 | ACCEPTED ⚠️（真实全链路已验证：通义 qwen-vl-ocr 识别 + 智谱 embedding-3 检索 + DeepSeek 生成，2026-08-14；仅 pgvector 生产向量库待 Docker） |
 | AGENT-001 | 完成 Agent 系统 | P2 | RAG-001 | ACCEPTED ✅ (A1-A3 done; 24 tests) |
 | ANDROID-001 | 完成 Android 客户端 | P1 | BACKEND-001 | ACCEPTED ⚠️（A1–A8 done；单测 15/15 PASS；assembleDebug PASS；QA 两轮复核后 P1/P2 全部修复；真机验证延期） |
 

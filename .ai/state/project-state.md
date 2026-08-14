@@ -36,14 +36,14 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
   4. Android 真机/模拟器、AI provider API keys 未提供
 - Next step: 提供 Docker/生产环境实施 DEPLOY-001b 并补跑全部延期验证；或提供 API keys/真机；或转入下一阶段规划（如对象生命周期、AI 生产化、多租户等）。
 
-## RAG-001 真实 Provider 验证（2026-08-14，用户提供 DeepSeek + 智谱 key）
+## RAG-001 真实 Provider 验证（2026-08-14，用户提供 DeepSeek + 智谱 + 通义 key）
 
 - Key 仅经环境变量使用，未入库/未落日志/未落测试样本；仓库内已确认零 key 残留。
-- **真实检索 E2E 已通过**：智谱 `embedding-3`（2048 维）+ DeepSeek `deepseek-v4-flash` 生成；脱敏 PDF ingest COMPLETED → rag/query OK / risk LOW / citation confidence 1.0 / needsReview false；来源不足时模型安全拒答；namespace 归属授权校验在真实链路生效。
-- 探测结论：Claude/Gemini 中转站（code.newcli.com）均无 embedding 模型，不作为 embedding 来源。
-- 仍为 mock：OCR（图片型报告解析，需 OCR 端点）。
-- 生产启用方式：`deploy/.env.example` 已含 `DW_AI_LLM_*` / `DW_AI_EMBEDDING_*` / `VIRUS_SCAN_*` 占位；密钥走 secrets 管理。
-- 证据：`.ai/handoffs/RAG-001/architect-real-embeddings.md`、`architect-real-llm-verification.md`；86 AI 测试不受影响。
+- **真实全链路已通过（图片/扫描件）**：通义 `qwen-vl-ocr` 识别 → 智谱 `embedding-3`（2048 维）语义检索 → DeepSeek `deepseek-v4-flash` 生成；脱敏图片 ingest COMPLETED → rag/query OK（citation 1，答案基于 OCR 原文，零编造）；OCR 文本不足时正确走 REVIEW_REQUIRED。
+- 实现：`DashScopeOcrProvider`（ai-service，89 pytest 全绿）；`deploy/.env.example` 含 `DW_AI_*`（LLM/EMBEDDING/OCR）占位。
+- 探测结论：Claude/Gemini 中转站（code.newcli.com）无 embedding 模型，不作为 provider。
+- 仍待环境：pgvector 生产向量库（当前内存库）、全栈 E2E（Android→Backend→AI）— 均需 Docker。
+- 证据：`.ai/handoffs/RAG-001/architect-real-llm-verification.md`、`architect-real-embeddings.md`、`architect-real-ocr.md`。
 
 ## Operational Runner
 
