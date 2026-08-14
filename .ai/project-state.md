@@ -1,17 +1,10 @@
 ---
-name: project-state
-description: 当前项目阶段与执行状态
+name: project-state-redirect
+description: Redirect — canonical project state now lives in .ai/state/
 metadata:
-  type: project
+  type: harness
 ---
 
-# Project State
+# Project State → .ai/state/project-state.md
 
-Project:
-Doctor-Wang
-
-Current Phase:
-AI Harness Setup
-
-Status:
-Preparing Multi-Agent Development Environment
+This file has moved. Read `.ai/state/project-state.md` for the current project state.

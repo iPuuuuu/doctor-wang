@@ -1,0 +1,30 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Backend Lead (filter-fix review)
+- Status: READY_FOR_REVIEW
+- Scope changed: Read-only review only. No product, API, schema, configuration, or source files were changed by this role.
+- Files changed:
+  - `.ai/handoffs/AUTH-001/backend-lead-filter-review.md`
+- Decisions:
+  - APPROVE the bounded `AuthTokenFilter.shouldNotFilter` repair for QA and Quality Review. It derives an application-relative path from `requestURI` after removing `contextPath`, and falls back to `servletPath` only if no request URI is present.
+  - The public allow-list has not expanded: it remains exact equality checks for only `/api/login`, `/healthz`, and `/`. Prefixes, descendants, trailing slashes, and similarly named routes do not bypass the filter.
+  - The protected-route authorization path remains fail-closed. It requires Bearer parsing, JWT verification, JTI lookup, JWT/session subject and database-ID agreement, token-hash agreement, a non-revoked session, and a non-expired persisted session. `AuthContext` continues to clear in `finally` after a successful downstream invocation.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests 'com.ipuuuuu.doctorwang.mock.controller.AuthHttpContractTest' --tests 'com.ipuuuuu.doctorwang.mock.config.AuthTokenFilterTest'`
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --rerun-tasks --tests 'com.ipuuuuu.doctorwang.mock.controller.AuthHttpContractTest' --tests 'com.ipuuuuu.doctorwang.mock.config.AuthTokenFilterTest'`
+  - `cd doctor-wang-mock-server && git diff --check`
+- Results and evidence:
+  - PASS — the first focused Gradle invocation completed `BUILD SUCCESSFUL` with all relevant tasks up to date.
+  - PASS — the forced independent invocation completed `BUILD SUCCESSFUL in 10s`, with five actionable tasks executed. XML results show `AuthHttpContractTest`: 3 tests, 0 failures/errors/skips; `AuthTokenFilterTest`: 8 tests, 0 failures/errors/skips.
+  - PASS — the regression contract is directly covered: an unauthenticated `POST /api/login` reaches the controller and returns 200, while an unauthenticated protected `/api/profile` returns 401; valid persisted-session profile access remains 200.
+  - PASS — filter unit coverage verifies missing/malformed/expired tokens return 401; invalid auth configuration returns 503 without a session query; revoked and expired persisted sessions return 401; and a valid session reaches the downstream chain with context cleared afterwards.
+  - PASS — `git diff --check` emitted no whitespace errors. Its shell startup emitted a non-blocking local `pyenv` rehash-permission warning; no diff-check failure was reported.
+  - NOT RUN — a deployed servlet/container test using a non-empty context path. The implementation is structurally safe for that path representation, but runtime deployment evidence belongs to QA/integration verification.
+- Risks / security / medical concerns:
+  - No allow-list or security-context regression was found in this change. Exact matching is a conservative policy and rejects noncanonical variants rather than granting access.
+  - P3 test-gap: there is no direct unit assertion that `/api/login/`, `/api/login/child`, and a context-path login request are respectively protected/properly bypassed. The current exact-match implementation and MockMvc contract cover the reported regression, but QA may add those assertions if the active task's approved test scope permits it.
+  - Existing AUTH-001 release blockers remain outside this bounded repair: Docker-backed PostgreSQL migration evidence is unavailable locally, and previously recorded deployment/security findings are unresolved. This review does not change the task's overall BLOCKED release status.
+- Open questions:
+  - QA should independently execute the focused tests and, where a servlet container with a configured context path is available, verify `POST <context-path>/api/login` uses the expected application-relative route.
+  - Quality/Security Review should retain ownership of the existing HTTP-only deployment, credential-migration, and server-side revoke release findings.
+- Next owner: QA for independent regression verification, then Quality Reviewer and Architect for the AUTH-001 gate decision.

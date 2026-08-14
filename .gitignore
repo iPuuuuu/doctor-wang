@@ -18,3 +18,21 @@ captures/
 
 # Private Claude notes
 .claude/private-deploy-notes.md
+
+# Local Gradle user home (sandboxed/offline environments)
+.gradle-home/
+
+# Local test-run logs
+.gradle-*.log
+.pytest-ai.log
+
+# Kotlin compile caches
+.kotlin/
+doctor-wang-mock-server/.kotlin/
+.android-home/
+.jdk21/
+
+# Runtime data / private session state / worktree duplicates
+.data/
+.claude/
+.skills/

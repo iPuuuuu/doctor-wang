@@ -1,0 +1,26 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: QA Engineer (Android auth/network evidence)
+- Status: READY_FOR_REVIEW
+- Scope changed: None (read-only QA review of the Android authentication slice)
+- Files changed: None in product code; this handoff only
+- Decisions: Android evidence is limited to source review and a successful compile/test task with no test sources. The implementation removes OkHttp BODY logging, adds a password visual transformation/password keyboard type, attaches the stored bearer token, and clears the persisted session on HTTP 401. No instrumentation/device run is possible in this environment.
+- Tests and exact commands:
+  - `bash ./gradlew :app:testDebugUnitTest --no-daemon --stacktrace`
+  - `git diff --check`
+  - `adb devices`
+  - `bash ./gradlew :app:lintDebug --no-daemon`
+- Results and evidence:
+  - PASS — `:app:testDebugUnitTest`: `BUILD SUCCESSFUL`; task output explicitly reports `:app:compileDebugUnitTestKotlin NO-SOURCE` and `:app:testDebugUnitTest NO-SOURCE`. This is a build/test-entry check, not behavioral test coverage.
+  - PASS — `git diff --check` produced no whitespace errors.
+  - PASS (source evidence) — [NetworkProvider.kt](../../../app/src/main/java/com/ipuuuuu/doctorwang/network/NetworkProvider.kt) has no `HttpLoggingInterceptor`/BODY logger, adds `Authorization: Bearer <token>` only when a nonblank token exists, and invokes `SessionManager.clearSession()` on HTTP 401.
+  - PASS (source evidence) — [LoginScreen.kt](../../../app/src/main/java/com/ipuuuuu/doctorwang/ui/screen/auth/LoginScreen.kt) uses `PasswordVisualTransformation` and `KeyboardType.Password` for password input.
+  - PASS (source evidence) — [RemoteDoctorWangRepository.kt](../../../app/src/main/java/com/ipuuuuu/doctorwang/data/repository/RemoteDoctorWangRepository.kt) persists the login response token/user ID and maps HTTP 401 to `SessionExpiredException`; `LoginViewModel` rejects blank credentials and exposes failure state.
+  - NOT RUN / BLOCKED — `adb devices` could not start the ADB daemon (`could not install *smartsocket* listener: Operation not permitted`), so no emulator/device instrumentation or Compose UI test ran.
+  - NOT RUN / BLOCKED — `:app:lintDebug` could not start because the Gradle wrapper lock under `/Users/a1234/.gradle/.../gradle-8.10.2-bin.zip.lck` is inaccessible (`Operation not permitted`); no lint result is claimed.
+- Risks / security / medical concerns:
+  - P1 release-gate evidence gap: Android has no `app/src/test` or `app/src/androidTest` files, therefore there is no automated behavioral coverage for login success/failure, blank input, 401 clearing, retry/timeout, duplicate request, or token isolation.
+  - P1 runtime evidence gap: device/emulator and lint checks are unavailable in this environment; release transport/security behavior remains unverified. Debug explicitly permits cleartext for local HTTP; release must be checked independently before deployment.
+  - No sensitive token/report contents were logged or added to this handoff.
+- Open questions: Should AUTH-001 add Android unit tests (fake repository/session manager) and an OkHttp interceptor test, plus Compose/instrumentation coverage once an SDK/emulator-capable CI runner is available? Production logout/revoke behavior remains a backend/product decision.
+- Next owner: Android Engineer to add bounded unit/instrumentation coverage within the approved AUTH-001 Android scope; QA to rerun on an SDK/emulator-capable or CI environment; Architect to retain AUTH-001 BLOCKED until release/security and backend integration gates are evidenced.

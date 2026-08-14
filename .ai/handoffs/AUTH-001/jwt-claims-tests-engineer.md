@@ -1,0 +1,12 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Backend Engineer (JWT verifier boundary tests)
+- Status: READY_FOR_REVIEW
+- Scope changed: Added direct `JwtTokenService.verify` boundary tests only; no production logic, API, migration, or client changes.
+- Files changed: `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/service/JwtTokenServiceTest.kt`
+- Decisions: Constructed signed tokens in the test helper using the configured HS256 secret so claim mutations exercise verifier checks rather than signature rejection. Covered expired `exp`, incorrect issuer, incorrect audience, missing `sub`/`uid`/`jti`, malformed Base64 payload, and malformed Base64 JOSE header.
+- Tests and exact commands: `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests 'com.ipuuuuu.doctorwang.mock.service.JwtTokenServiceTest'`
+- Results and evidence: PASS; 11 tests completed, `BUILD SUCCESSFUL in 4s`.
+- Risks / privacy / quality concerns: Test helper uses the existing synthetic 32-byte fixture secret and synthetic IDs only. A payload containing valid Base64 but invalid JSON currently causes Jackson parsing to escape `JwtTokenService.verify` (the verifier catches `IllegalArgumentException` only); this was not changed because the approved scope was test-only and should be assessed by Lead/Architect as a production hardening follow-up.
+- Open questions: Should verifier JSON parsing catch all decode/parser exceptions and map them to `AUTHENTICATION_REQUIRED`? This would require a separate approved production-logic slice.
+- Next owner: Lead / QA for independent review and full backend regression test.

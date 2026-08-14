@@ -1,0 +1,12 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: QA Engineer
+- Status: READY_FOR_REVIEW
+- Scope changed: Independent QA of startup JWT configuration validation; no business code changes.
+- Files changed: `.ai/reports/authentication-startup-validation-qa.md`, `.ai/handoffs/AUTH-001/startup-validation-qa.md`
+- Decisions: Classified the bounded startup-validation slice `VERIFIED`; explicit empty-value and valid TTL endpoint tests were added and passed. This does not change the overall AUTH-001 release `BLOCKED` status.
+- Tests and exact commands: `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --rerun-tasks`; `git diff --check`; source/test inspection of `AuthProperties.kt` and `JwtTokenServiceTest.kt`.
+- Results and evidence: Backend test **PASS** (`BUILD SUCCESSFUL in 6s`); diff check **PASS**; short/empty secret, blank/whitespace issuer/audience, invalid TTL, and valid TTL endpoints 1/86,400 **PASS**; runtime filter 503 configuration-error mapping **NOT RUN** after fail-fast construction replaced the former test setup; PostgreSQL integration remains **BLOCKED** without Docker.
+- Risks / security / medical concerns: Startup fail-fast is security-positive. The runtime defensive 503 path still lacks an executable test after fail-fast construction; earlier reports describing the short-secret filter 503 as PASS were corrected. AUTH-001 remains blocked by integration environment and existing production TLS/credential migration gates.
+- Open questions: Which Docker-capable CI environment will run the V8 matrix, and what approved TLS/credential migration controls will unblock release?
+- Next owner: Architect for the remaining release blockers; CI operator for PostgreSQL matrix; QA/Security for final re-review.

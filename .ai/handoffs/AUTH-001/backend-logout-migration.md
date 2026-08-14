@@ -1,0 +1,33 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Backend Engineer
+- Status: READY_FOR_REVIEW
+- Scope changed: Implemented the ADR-0003 backend-only authentication closeout. The unreleased V8 migration now enables PostgreSQL `pgcrypto` and converts every existing non-null plaintext password to BCrypt cost 12 before enforcing `password_hash NOT NULL` and dropping `password`; all legacy sessions are still invalidated before the JTI/token-hash schema is introduced. Added authenticated, user-scoped, idempotent `POST /api/logout` backed by an atomic JTI + user-id update. Repeated logout is allowed only for the logout route after JWT, subject, database-user, token-hash and expiry binding checks; revoked sessions remain rejected on all other routes.
+- Files changed:
+  - `doctor-wang-mock-server/src/main/resources/db/migration/V8__harden_user_credentials_and_jwt_sessions.sql`
+  - `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/config/AuthContext.kt`
+  - `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/config/AuthTokenFilter.kt`
+  - `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/controller/AuthController.kt`
+  - `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/persistence/repository/UserSessionRepository.kt`
+  - `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/service/BackendService.kt`
+  - `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/controller/AuthHttpContractTest.kt`
+  - `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/service/BackendServiceTest.kt`
+  - `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/integration/PostgresIntegrationMatrixTest.kt`
+- Decisions:
+  - Kept V8 as the migration because the accepted ADR states it is unreleased; historical V1–V7 files were not modified.
+  - Used PostgreSQL `crypt(password, gen_salt('bf', 12))` rather than a fixed demo hash, preserving each existing credential without checking plaintext into the repository. `create extension if not exists pgcrypto` is executed in the migration and any unavailable extension/permission fails the migration transaction.
+  - Logout uses `@Modifying` JPQL with both JTI and authenticated database user id. `coalesce` makes repeated calls a no-op success and prevents revocation timestamp churn.
+  - `AuthContext` now carries the verified JTI. The filter never trusts a client-supplied user id or JTI.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests 'com.ipuuuuu.doctorwang.mock.service.BackendServiceTest' --tests 'com.ipuuuuu.doctorwang.mock.controller.AuthHttpContractTest' --tests 'com.ipuuuuu.doctorwang.mock.config.AuthTokenFilterTest'`
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --rerun-tasks`
+  - `git diff --check`
+  - Intended integration command: `cd doctor-wang-mock-server && bash ./gradlew postgresIntegrationTest --stacktrace`
+- Results and evidence:
+  - Focused backend authentication tests: PASS (21 tests, BUILD SUCCESSFUL).
+  - Complete backend unit suite with `--rerun-tasks`: PASS, BUILD SUCCESSFUL. Existing compiler warnings are the pre-existing unchecked JSON map casts in `JwtTokenService`; no test failures.
+  - `git diff --check`: PASS.
+  - PostgreSQL/Testcontainers/Flyway V8 integration: BLOCKED in this environment before test body because Docker CLI/socket is unavailable (`Could not find a valid Docker environment`). The integration matrix now asserts BCrypt cost 12, original demo credential verification, absence of plaintext `password`, V8 schema, and Hibernate startup when a Docker-capable runner is available.
+- Risks / security / medical concerns: V8 drops plaintext credentials and intentionally deletes all pre-V8 opaque sessions; production execution requires the ADR-0003 backup/restore and maintenance-window runbook. No passwords, tokens, reports, or health data are logged. This backend is a health-assistance service and does not make medical diagnoses; this change has no user-facing medical output.
+- Open questions: Docker-capable CI must execute and archive the PostgreSQL/Flyway/Hibernate and logout persistence evidence. Deployment TLS and Android release transport remain outside this handoff and continue to be release gates.
+- Next owner: QA Engineer for independent focused/integration verification, then Security Reviewer and Architect for final gate decision.

@@ -1,0 +1,27 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Quality / Security Reviewer
+- Status: VERIFIED
+- Scope changed: None. Independent review of the newly added stateful HTTP logout/revoke regression tests and current authentication diff; no business, test, deployment, migration, or Android source was modified by this review.
+- Files changed: `.ai/handoffs/AUTH-001/quality-stateful-revoke-followup.md` only.
+- Decisions:
+  - The previous logout/revoke sub-slice `REWORK` is closed at the bounded MockMvc/service level. `AuthHttpContractTest` now constructs a real `BackendService` and a real `AuthController`, drives `POST /api/logout`, then drives a protected request with the same bearer. The stateful repository double persists `revokedAt`; the subsequent filter request returns 401. This is materially stronger than the prior controller contract tests that mocked `BackendService`.
+  - Cross-user/JTI binding is covered in the same executable slice: a token whose claims identify user 1 is paired with a persisted session owned by user 2 and is rejected without changing the victim session; an unknown JTI is also rejected and no session is created/revoked. The repository double applies both JTI and user-id predicates, matching the production update query's predicates.
+  - This evidence is deliberately bounded: the stateful repository is a Mockito-backed in-memory double, not PostgreSQL/JPA. It proves controller → real service → repository-call semantics and filter re-evaluation, but cannot prove transaction commit/flush, SQL predicate behavior, Flyway schema compatibility, concurrent updates, or database isolation. PostgreSQL/Testcontainers remains a separate release gate and AUTH-001 remains BLOCKED.
+  - Idempotency remains appropriately constrained to the exact authenticated logout route. The filter permits a revoked current session only for `POST /api/logout`; all other protected paths continue to reject it. No broad route or method bypass was introduced by this test slice.
+  - No sensitive-data concern found in the reviewed tests or implementation: synthetic users/tokens only; no token, Authorization header, password, report text, or request body is logged. The test source uses token values in memory/assertions only.
+- Tests and exact commands:
+  - `cd /Users/a1234/code/doctor-wang/doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests 'com.ipuuuuu.doctorwang.mock.controller.AuthHttpContractTest' --tests 'com.ipuuuuu.doctorwang.mock.service.BackendServiceTest' --tests 'com.ipuuuuu.doctorwang.mock.config.AuthTokenFilterTest'` — NOT RUN in this review turn: Gradle wrapper could not acquire `/Users/a1234/.gradle/wrapper/dists/...gradle-8.10.2-bin.zip.lck` (`Operation not permitted`), consistent with the shared/concurrent managed environment. Existing project state records this focused suite as PASS after the stateful regression was added.
+  - `git diff --check` — NOT RUN in this review turn because the same shell invocation was stopped by the Gradle wrapper error; prior project state records PASS.
+  - `cd ... && bash ./gradlew --no-daemon postgresIntegrationTest --stacktrace` — BLOCKED by unavailable Docker/Testcontainers, as recorded in project state; no in-memory result is promoted to PostgreSQL evidence.
+- Results and evidence:
+  - PASS (static/read-only): stateful test calls real `BackendService.logout()`, repository double mutates `revokedAt`, and next protected request is rejected with 401.
+  - PASS (static/read-only): user-id/JTI mismatch and unknown-JTI paths do not revoke a victim session.
+  - PASS (static/read-only): logout remains idempotent for an already-revoked current session and is not a general protected-route bypass.
+  - NOT RUN/BLOCKED: real PostgreSQL persistence, Flyway V8, Hibernate validation, transaction/flush behavior, concurrent race behavior, Compose/Nginx/TLS runtime, and Android runtime/release transport checks.
+- Risks / privacy / quality concerns:
+  - P1 release evidence gap: PostgreSQL/Testcontainers cannot execute without Docker/Podman. The SQL `revokeByJtiAndUserId` behavior and `@Transactional` commit semantics require Docker-capable CI before release.
+  - P1 independent AUTH-001 gates remain: credential migration and HTTPS/TLS runtime evidence. This handoff does not change the parent task's `BLOCKED` status.
+  - The repository double intentionally mirrors the production JTI + user-id predicate; if its implementation diverges from the query, this unit evidence could become misleading. Keep the Docker-backed integration matrix mandatory.
+- Open questions: Which Docker-capable CI runner will archive PostgreSQL/Flyway/Hibernate and post-revoke evidence? Which environment will execute Nginx/HTTPS smoke and Android release transport checks?
+- Next owner: CI operator for Docker-backed integration and deployment smoke; QA and Security Reviewer for independent rerun; Architect for final AUTH-001 release decision.

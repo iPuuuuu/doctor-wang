@@ -1,0 +1,12 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Security Reviewer (autopilot re-review)
+- Status: BLOCKED
+- Scope changed: None; independent read-only review of deploy TLS/cleartext, V8 credential migration, JWT/session boundaries, logging and Android URL policy.
+- Files changed: `.ai/handoffs/AUTH-001/security-autopilot.md`; `.ai/reports/authentication-autopilot-security.md` (evidence only).
+- Decisions: Release gate remains BLOCK. Existing JWT hardening and focused unit coverage are useful but do not clear deployment/migration gates. No P0 found.
+- Tests and exact commands: `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests '*AuthTokenFilterTest' --tests '*JwtTokenServiceTest' --tests '*BackendServiceTest'` (PASS, BUILD SUCCESSFUL); `docker version` (BLOCKED, command not found); repository `rg` sensitive logging/cleartext search (PASS source-only); PostgreSQL/Testcontainers and Android release checks (BLOCKED/NOT RUN).
+- Results and evidence: P1 HTTP-only Nginx/public port; P1 demo-only V8 backfill and historical plaintext demo seed; P2 weak `doctor_wang` DB password defaults; P2 release custom server URL accepts `http://`; P2 no server-side logout/revoke; P3 source-only logging pass. Full locations, impact and recommendations are in `.ai/reports/authentication-autopilot-security.md`.
+- Risks / privacy / quality concerns: Bearer tokens and health data remain exposed if deployed over HTTP; applying V8 to real users can fail or lose credential state; guessed DB defaults and custom cleartext URL violate production secret/transport boundaries. Do not represent mock/demo deployment as production.
+- Open questions: Which TLS terminator and secret policy will be approved? What reset/backfill and backup/rollback runbook covers all users? Is active revoke required within AUTH-001? Can QA obtain Docker/Android-capable CI?
+- Next owner: Deployment/Backend Lead for P1 remediation and migration runbook; QA for live PostgreSQL and Android release evidence; Architect for final decision and re-review scheduling.

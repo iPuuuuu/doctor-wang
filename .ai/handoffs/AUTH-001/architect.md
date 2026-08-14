@@ -1,0 +1,12 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Architect
+- Status: BLOCKED
+- Scope changed: Reviewed the authentication vertical slice and applied a minimal V8 migration correction: invalidate legacy opaque sessions before renaming the token column, then constrain `token_hash` to `varchar(64)` to match the entity hash contract.
+- Files changed: `doctor-wang-mock-server/src/main/resources/db/migration/V8__harden_user_credentials_and_jwt_sessions.sql`; `.ai/project-state.md`; `.ai/task-board.md`; `.ai/handoffs/AUTH-001/{architect,qa,security}.md`
+- Decisions: Keep AUTH-001 active. Legacy opaque bearer sessions are intentionally invalidated during V8; clients must log in again. Do not accept the slice until PostgreSQL/Testcontainers executes V8 and Hibernate validation, and security findings are independently rechecked.
+- Tests and exact commands: `cd doctor-wang-mock-server && bash ./gradlew test --rerun-tasks`; `cd doctor-wang-mock-server && bash ./gradlew postgresIntegrationTest`; `bash ./gradlew test`; `git diff --check`; `docker version`
+- Results and evidence: Backend tests PASS (exit 0); root Android Gradle test PASS with `NO-SOURCE` unit tests; `git diff --check` PASS; PostgreSQL/Testcontainers BLOCKED before test body because Docker client/socket is unavailable; `docker version` is not runnable (`docker: command not found`). QA handoff is BLOCKED. Security static re-review dated 2026-08-09 confirms both P1 V8 findings are remediated, but remains BLOCK pending live PostgreSQL/Flyway/Hibernate validation and other security gates.
+- Risks / security / medical concerns: No production acceptance. Migration contains demo-only credential handling and destructive legacy-session invalidation; production user migration requires a separately approved reset process. Android has no actual test sources. No medical data was used.
+- Open questions: Run the integration matrix in Docker-capable CI; independently re-review the corrected migration; decide whether to add authenticated logout/revocation and bounded TTL as a follow-up or within AUTH-001.
+- Next owner: Architect after Docker-capable QA and Security re-review; otherwise release owner to record environment unblock.

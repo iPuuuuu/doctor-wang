@@ -1,0 +1,21 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Backend Engineer (autopilot filter-fix)
+- Status: READY_FOR_REVIEW
+- Scope changed: Corrected only the auth filter's public-route path source. The public allow-list remains exactly `/api/login`, `/healthz`, and `/`.
+- Files changed:
+  - `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/config/AuthTokenFilter.kt`
+  - `.ai/handoffs/AUTH-001/backend-engineer-autopilot-filter-fix.md`
+- Decisions: `shouldNotFilter` now derives an application-relative route from `requestURI` after removing `contextPath`, with `servletPath` retained as a fallback. This handles MockMvc's request-path representation and context-path deployments while retaining exact route matching (for example, `/api/login/` is not allowed).
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew test --tests 'com.ipuuuuu.doctorwang.mock.controller.AuthHttpContractTest' --tests 'com.ipuuuuu.doctorwang.mock.config.AuthTokenFilterTest'`
+  - `cd doctor-wang-mock-server && bash ./gradlew test --tests 'com.ipuuuuu.doctorwang.mock.service.BackendServiceTest'`
+  - `git diff --check`
+- Results and evidence:
+  - PASS — focused Auth HTTP contract and filter tests: `BUILD SUCCESSFUL` (5 actionable tasks; first command compiled the changed Kotlin source and executed tests).
+  - PASS — `BackendServiceTest`: `BUILD SUCCESSFUL` (5 actionable tasks; 1 executed, 4 up-to-date).
+  - PASS — `git diff --check` returned no whitespace errors.
+  - The login contract test reaches the controller without a bearer token and verifies the expected `200` response; this was the regression path being fixed.
+- Risks / security / medical concerns: No API, authorization scope, data model, migration, or medical-output behavior changed. Exact matching prevents bypass for non-allow-listed descendants or similarly prefixed routes. Existing worktree changes were preserved; the filter had pre-existing, uncommitted JWT/session-hardening changes not altered by this slice.
+- Open questions: QA should independently run the same focused contract test and confirm the deployment/container servlet configuration does not introduce a non-standard request URI representation.
+- Next owner: Backend Lead for implementation review, then QA and Quality Reviewer.

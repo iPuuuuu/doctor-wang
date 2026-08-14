@@ -1,0 +1,17 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Architect / Backend Lead
+- Status: VERIFIED
+- Scope changed: Re-verified the bounded public-route matching sub-slice only. No production code, migration, API, Android, dependency, or deployment files were modified in this handoff.
+- Files changed: `.ai/project-state.md`; `.ai/task-board.md`; `.ai/handoffs/AUTH-001/architect-route-regression-closure.md`.
+- Decisions: Treat the earlier `POST /api/login` MockMvc 401 as stale failure evidence. The current `AuthTokenFilter.shouldNotFilter` normalizes an application-relative path and exactly exempts `/api/login`; it does not exempt other `/api/**` paths. Retain AUTH-001 as BLOCKED because release blockers are independent of this regression.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests 'com.ipuuuuu.doctorwang.mock.controller.AuthHttpContractTest' --tests 'com.ipuuuuu.doctorwang.mock.config.AuthTokenFilterTest' --tests 'com.ipuuuuu.doctorwang.mock.service.BackendServiceTest'`
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --rerun-tasks`
+- Results and evidence:
+  - PASS — focused MockMvc, filter, and login-service regression suite completed with `BUILD SUCCESSFUL in 7s`.
+  - PASS — complete non-integration backend suite completed with `BUILD SUCCESSFUL in 12s`.
+  - Compilation emitted two unchecked-map-cast warnings in `JwtTokenService.kt`; they are non-failing but remain a P3 code-quality follow-up.
+- Risks / privacy / quality concerns: PostgreSQL/Flyway V8, TLS, non-demo credential migration, Android release transport, and server-side revoke remain outside this sub-slice and continue to block release.
+- Open questions: Docker-capable CI evidence and the approved TLS/credential-reset implementation design are still required.
+- Next owner: Architect / Deployment Lead for the TLS and credential-migration design; QA and Security Reviewer after implementation and Docker-capable verification.

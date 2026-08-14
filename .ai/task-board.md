@@ -1,16 +1,10 @@
 ---
-name: task-board
-description: 当前 AI Harness 的任务看板
+name: task-board-redirect
+description: Redirect — canonical task board now lives in .ai/state/
 metadata:
-  type: project
+  type: harness
 ---
 
-# Task Board
+# Task Board → .ai/state/task-board.md
 
-## Backlog
-
-- 建立项目架构
-- 完成 Backend 基础能力
-- 完成 RAG 系统
-- 完成 Agent 系统
-- 完成 Android 客户端
+This file has moved. Read `.ai/state/task-board.md` for the current task board.

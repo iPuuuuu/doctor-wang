@@ -1,0 +1,12 @@
+## Handoff
+- Task ID: BOT-001
+- Agent: Architect
+- Status: READY_FOR_REVIEW
+- Scope changed: Switched the external `/Users/a1234/ai-coding-agent-bot` managed execution engine from Claude CLI to Codex CLI; retained old Claude session monitoring as read-only compatibility. The resident polling loop remains `while True`; explicit `/stop` remains available as a safety control.
+- Files changed: External bot project `agent_runner.py`, `bot.py`, `README.md`, `FEISHU.md`, and `.env` path-only update for `CODEX_SESSIONS_DIR`; pre-existing unrelated `feishu_bridge.py` and `docs/` changes were preserved. A runtime bug in Codex session polling (dict keys iterated as records) was fixed in `bot.py`.
+- Decisions: Codex is invoked with `codex exec --json`; Codex thread/item/turn events are parsed without forwarding tool payloads. The bot's supervisor prompt and permission layer remain in force, and explicit destructive-operation confirmation is not removed.
+- Tests and exact commands: AST parse for `agent_runner.py` and `bot.py`; `codex --version`; `git -C /Users/a1234/ai-coding-agent-bot diff --check`.
+- Results and evidence: AST PASS; `codex-cli 0.147.0`; bot diff check PASS. An authorized read-only smoke call using `codex --ask-for-approval never --sandbox read-only exec --ephemeral --json ...` returned `thread.started`, `turn.completed`, and `READY`, proving the configured API key/provider path works. Bot restarted successfully in session `7326` and connected to the Feishu gateway at 2026-08-09 23:03:03. No real health data was used.
+- Risks / security / medical concerns: `--ask-for-approval never` is safe only with the bot policy still active; `/stop` remains required. Codex resume/event schema needs connected smoke testing. No health or patient data was accessed.
+- Open questions: Validate one new Codex session and one resume turn through a real authorized Feishu message; investigate intermittent `codex doctor` health-probe warning separately from API authentication.
+- Next owner: Bot maintainer / Architect for connected-environment smoke test.

@@ -1,0 +1,19 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Architect
+- Status: BLOCKED
+- Scope changed: Approved and integrated a minimal authentication hardening sub-slice only: bounded JWT TTL, strict JOSE header validation, safe configuration-error response, focused unit coverage, and V8 integration-matrix assertions. No historical Flyway migration, TLS configuration, real credentials, Android behavior, or API surface was changed in this loop.
+- Files changed: `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/{service/JwtTokenService.kt,config/AuthTokenFilter.kt}`; `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/{service/JwtTokenServiceTest.kt,config/AuthTokenFilterTest.kt,integration/PostgresIntegrationMatrixTest.kt}`; `.ai/project-state.md`; `.ai/task-board.md`; `.ai/reports/authentication-hardening-{qa,security}.md`; `.ai/handoffs/AUTH-001/{qa-hardening,security-hardening,architect-hardening}.md`.
+- Decisions: Keep AUTH-001 blocked. A 24-hour maximum JWT lifetime is a conservative temporary bound, not a replacement for user-scoped server-side revocation. Do not expand into deployment TLS or non-demo credential migration without an approved production deployment/reset-backfill design and rollback evidence.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --rerun-tasks`
+  - `cd doctor-wang-mock-server && git diff --check`
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon postgresIntegrationTest --stacktrace`
+- Results and evidence:
+  - Backend unit suite PASS, `BUILD SUCCESSFUL in 7s`; includes JWT issue/tamper, invalid TTL, unexpected JOSE header, short-secret filter 503, and BCrypt hashing coverage. Kotlin emitted two existing unchecked-map-cast warnings.
+  - `git diff --check` PASS.
+  - PostgreSQL integration BLOCKED before test body: Testcontainers could not find a valid Docker environment. The revised V8 assertions are compiled but unexecuted; report path is `doctor-wang-mock-server/build/reports/tests/postgresIntegrationTest/index.html`.
+  - QA verdict is BLOCKED: `.ai/reports/authentication-hardening-qa.md`. Independent Security verdict is BLOCK: `.ai/reports/authentication-hardening-security.md`.
+- Risks / privacy / quality concerns: P1 TLS and non-demo credential-migration blockers remain. P2 startup secret/issuer/audience validation, HTTP/filter session/revocation evidence beyond the short-secret 503 case, Android release transport and proxy/runtime log-redaction evidence are open. The V8 test does not simulate a pre-V8 opaque-session database, so legacy-session deletion still awaits controlled migration verification.
+- Open questions: Which TLS termination and log-redaction design is approved? What reset/backfill plus backup/restore runbook applies to all non-demo users? Which Docker/Podman-capable CI environment will execute the revised V8 matrix? Is a server-side logout/revoke API in scope for AUTH-001 or a separately approved follow-up?
+- Next owner: Architect / deployment decision owner for the two P1 decisions; Backend Engineer for startup validation and HTTP/filter tests after scope confirmation; CI operator for Docker-capable test evidence; QA and Security Reviewer for final re-review.

@@ -1,0 +1,27 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Backend Engineer
+- Status: READY_FOR_REVIEW
+- Scope changed: Restricted `AuthTokenFilter` public bypasses to exact HTTP method and application-relative path combinations. Added executable filter regressions for method, context-path, trailing-slash, and descendant-path behavior.
+- Files changed:
+  - `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/config/AuthTokenFilter.kt`
+  - `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/config/AuthTokenFilterTest.kt`
+  - `.ai/handoffs/AUTH-001/backend-engineer-autopilot-method-lockdown.md`
+- Decisions:
+  - Public bypasses are only `POST /api/login`, `GET /healthz`, and `GET /`.
+  - The filter derives an application-relative path by removing the servlet context path from `requestURI`; it does not normalize trailing slashes or permit descendants.
+  - `HEAD /` is deliberately not bypassed because the public controller mappings are `@GetMapping` and no separate HEAD allowance was approved.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests 'com.ipuuuuu.doctorwang.mock.config.AuthTokenFilterTest' --tests 'com.ipuuuuu.doctorwang.mock.controller.AuthHttpContractTest'`
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --rerun-tasks`
+  - `git diff --check`
+- Results and evidence:
+  - PASS — focused `AuthTokenFilterTest` and `AuthHttpContractTest` build completed successfully. The added filter tests prove the allowed `POST /api/login` request works behind context path `/gateway`, and that `GET /api/login`, `POST /healthz`, `HEAD /`, `/api/login/`, `/healthz/`, `/healthz/ready`, and `/api/login/extra` return 401 without JWT/session interaction.
+  - FAIL (unrelated current-worktree compilation blocker) — complete `test --rerun-tasks` did not reach execution because other uncommitted tests reference missing logout APIs: `AuthHttpContractTest.kt` reports unresolved `BackendService.logout`; `BackendServiceTest.kt` reports missing `sessionId`, `revokeByJtiAndUserId`, and `logout`. This task did not modify those files or APIs.
+  - PASS — `git diff --check` completed with no whitespace errors after this change.
+- Risks / security / medical concerns:
+  - This closes the P2 route-method widening issue only. AUTH-001's pre-existing release blockers (Docker-backed PostgreSQL evidence, HTTPS/deployment controls, and credential-migration concerns) are unchanged.
+  - Full backend-suite validation must be repeated after the concurrent logout implementation and tests are reconciled.
+- Open questions:
+  - None for this bounded filter change. Lead/QA should independently rerun the focused tests and determine the owner for the unrelated logout compile failure.
+- Next owner: Backend Lead for review, then QA and Quality Reviewer.

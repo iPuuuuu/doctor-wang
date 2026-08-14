@@ -1,0 +1,21 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: QA Engineer
+- Status: BLOCKED
+- Scope changed: QA evidence only; no production, test, migration, deployment, or Android code changed.
+- Files changed: `.ai/reports/authentication-hardening-qa.md`; `.ai/handoffs/AUTH-001/qa-hardening.md`.
+- Decisions: The bounded-TTL and strict-JOSE-header unit-test slice is verified locally. AUTH-001 remains blocked at the PostgreSQL/Flyway/Hibernate release gate and cannot be described as production-verified.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --stop; bash ./gradlew --no-daemon test --rerun-tasks`
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon postgresIntegrationTest --stacktrace`
+  - `bash ./gradlew test` (repository root)
+  - `git diff --check`
+- Results and evidence:
+  - Backend local unit tests: PASS, `BUILD SUCCESSFUL in 11s`; the JWT issue/tamper/invalid-TTL/unexpected-JOSE-header and password-hash test cases passed.
+  - PostgreSQL integration: BLOCKED before test body. Testcontainers reports `Could not find a valid Docker environment`; Unix socket `/var/run/docker.sock` is absent. Evidence is in `doctor-wang-mock-server/build/test-results/postgresIntegrationTest/TEST-com.ipuuuuu.doctorwang.mock.integration.PostgresIntegrationMatrixTest.xml`.
+  - Root Android Gradle test: PASS build, but Android debug/release unit tests are `NO-SOURCE`; no behavioral Android evidence was executed.
+  - Diff whitespace: PASS.
+  - Full matrix, test-gap analysis, and warning details: `.ai/reports/authentication-hardening-qa.md`.
+- Risks / privacy / quality concerns: The current integration test only asserts Flyway versions 1..7 and cannot prove V8's contract even after a Docker-capable run unless it is expanded. No HTTP/filter tests prove session revocation, safe 503 configuration handling, or user/token binding. No server-side revocation API is present. Android login/security behavior is untested.
+- Open questions: Which Docker/Podman-capable CI environment will run the V8 matrix? Is server-side logout/revoke in AUTH-001 scope, or will Architect record a bounded-TTL incident-response risk acceptance? Is an approved non-demo user credential reset/backfill runbook available?
+- Next owner: Backend Lead/Engineer for V8 and HTTP/filter coverage plus revoke-path decision; CI operator for Docker-capable execution; Security Reviewer and Architect for independent re-review and gate decision.

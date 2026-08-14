@@ -1,0 +1,21 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Architect
+- Status: READY_FOR_REVIEW
+- Scope changed: Closed exact path/method filter rework and implemented ADR-0003 authentication hardening: all-row pgcrypto BCrypt V8 migration, JTI/user-bound idempotent logout, Nginx TLS enforcement, and Android best-effort server revoke with unconditional local cleanup.
+- Files changed: Backend auth/migration/tests, deploy TLS files/docs, Android API/repository logout files, ADR-0003, and project state/task-board records.
+- Decisions: V8 is treated as unreleased and was corrected without modifying V1–V7. Nginx is the versioned TLS baseline. Logout only revokes the authenticated current JTI and repeated logout is harmless. Android never retains the bearer token merely because revoke networking fails.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --rerun-tasks`
+  - `bash ./gradlew --no-daemon test`
+  - `git diff --check`
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon postgresIntegrationTest --stacktrace`
+- Results and evidence:
+  - PASS — complete backend non-integration suite (`BUILD SUCCESSFUL`).
+  - PASS — root Android build/test task (`BUILD SUCCESSFUL`); Android unit tasks are `NO-SOURCE`.
+  - PASS — whitespace and static TLS contract checks.
+  - BLOCKED — PostgreSQL/Testcontainers before test body because Docker client/socket is unavailable.
+  - NOT RUN — Docker Compose config, `nginx -t`, real HTTPS smoke, Android behavior tests and release APK cleartext inspection.
+- Risks / privacy / quality concerns: PostgreSQL `pgcrypto` permission/extension support, backup/restore, migration behavior and runtime TLS remain unverified. Existing unchecked JWT JSON-map cast warnings remain non-failing quality debt.
+- Open questions: None requiring product direction; remaining evidence requires Docker-capable controlled infrastructure.
+- Next owner: Security Reviewer and QA, then CI operator and Architect delivery decision.

@@ -1,0 +1,37 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Deployment Engineer
+- Status: READY_FOR_REVIEW
+- Scope changed: Implemented the ADR-0003 minimum TLS deployment closure only: Nginx owns public HTTP/HTTPS entrypoints, HTTP redirects to HTTPS, certificates are bind-mounted read-only, and backend remains private to the Compose network. No remote environment, certificate, credential, application code, API, or database migration was changed.
+- Files changed:
+  - `deploy/docker-compose.yml`
+  - `deploy/nginx/default.conf`
+  - `deploy/.env.example`
+  - `deploy/README.md`
+  - `.ai/handoffs/AUTH-001/deployment-tls.md`
+- Decisions:
+  - Published only Nginx ports `80:80` and `443:443`; backend continues to use Compose `expose: 8080` without a host-port mapping.
+  - Port 80 returns `308 https://$host$request_uri` and cannot proxy application traffic to the backend.
+  - Port 443 terminates TLS with `/etc/nginx/certs/fullchain.pem` and `/etc/nginx/certs/privkey.pem`, allows TLS 1.2/1.3, sets HSTS, and proxies internally to `backend:8080` with `X-Forwarded-Proto: https`.
+  - `TLS_CERTS_DIR` is required and mounted to `/etc/nginx/certs:ro`; no certificate or private key was created, copied, or committed.
+  - `POSTGRES_PASSWORD` is now required by Compose rather than falling back to the insecure `doctor_wang` default. The example values are non-secret placeholders and deployment documentation requires replacing them before use.
+- Tests and exact commands:
+  - `git diff --check`
+  - `ruby -ryaml -e 'YAML.load_file("deploy/docker-compose.yml"); puts "YAML_PARSE_PASS"'`
+  - `if rg -n '^\\s*ports:' deploy/docker-compose.yml -A4 | rg -q '8080:8080'; then echo BACKEND_HOST_PORT_FAIL; exit 1; fi; if ! rg -q '^\\s*return 308 https://\\$host\\$request_uri;' deploy/nginx/default.conf; then echo HTTP_REDIRECT_FAIL; exit 1; fi; if ! rg -q '^\\s*listen 443 ssl;' deploy/nginx/default.conf; then echo TLS_LISTENER_FAIL; exit 1; fi; if ! rg -q ':/etc/nginx/certs:ro$' deploy/docker-compose.yml; then echo READ_ONLY_CERT_MOUNT_FAIL; exit 1; fi; if git ls-files --error-unmatch deploy/certs/fullchain.pem deploy/certs/privkey.pem >/dev/null 2>&1; then echo TRACKED_CERTIFICATE_FAIL; exit 1; fi; echo TLS_STATIC_CONTRACT_PASS`
+  - `command -v docker || true; command -v nginx || true`
+  - Deferred verification required in a Docker-capable environment: `cd deploy && docker compose --env-file .env config`; `cd deploy && docker compose --env-file .env run --rm nginx nginx -t`; post-deploy `curl -I http://your-domain.example/healthz`; `curl --fail --show-error https://your-domain.example/healthz`.
+- Results and evidence:
+  - PASS — `git diff --check` completed with exit 0.
+  - PASS — Ruby YAML parser returned `YAML_PARSE_PASS`.
+  - PASS — static contract check returned `TLS_STATIC_CONTRACT_PASS`: no `8080:8080` host mapping; required HTTP redirect and TLS listener are present; certificate mount is read-only; expected certificate files are not tracked by Git.
+  - NOT RUN — `docker compose ... config` and `nginx -t`: neither `docker` nor `nginx` executable is installed in this environment. No attempt was made to create fake certificates, bypass TLS validation, or contact a remote host.
+  - NOT RUN — live HTTP-to-HTTPS and HTTPS backend proxy smoke tests: require a deployment hostname and valid non-repository certificate files.
+- Risks / security / medical concerns:
+  - P1 release evidence remains open until a Docker-capable CI/deployment environment validates Compose rendering, `nginx -t`, and the live redirect/TLS proxy behavior with a valid certificate. This handoff does not claim production deployment or certificate validity.
+  - This is not certificate automation, rotation, monitoring, high availability, or a complete production release design. The README explicitly preserves those limitations.
+  - `$host` preserves the incoming host in the required same-host redirect. Production ingress should constrain accepted hostnames at DNS/firewall/load-balancer boundaries; use the actual DNS name when validating the certificate.
+- Open questions:
+  - Provide Docker-capable CI or a controlled deployment host for the required Compose/Nginx and live TLS evidence.
+  - Security Reviewer must independently review the resulting Nginx redirect/header policy and certificate-directory permissions in the target environment.
+- Next owner: QA Engineer for Docker-capable static/integration validation, then Security Reviewer for independent TLS deployment review; Architect makes the release-gate decision.

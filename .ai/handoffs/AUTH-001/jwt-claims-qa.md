@@ -1,0 +1,12 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Architect acting as QA verifier
+- Status: VERIFIED
+- Scope changed: Independent verification of direct JWT verifier claims and malformed-token tests; no API, migration, deploy, or Android changes.
+- Files changed: `.ai/reports/authentication-jwt-claims-qa.md`; parser exception handling in `JwtTokenService.kt` was minimally hardened after Engineer handoff identified JSON parse escape risk.
+- Decisions: Mark the direct verifier slice VERIFIED; retain overall AUTH-001 BLOCKED because persistence/filter integration and production gates remain unverified.
+- Tests and exact commands: `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --rerun-tasks`; `git diff --check`.
+- Results and evidence: Backend suite PASS (`BUILD SUCCESSFUL in 6s`); diff check PASS. PostgreSQL integration remains BLOCKED by missing Docker.
+- Risks / privacy / medical concerns: Tests use synthetic user IDs and tokens only. Filter-level revoked/expired/claims mismatch and user isolation remain NOT RUN.
+- Open questions: Which Docker-capable CI will execute V8 and Hibernate validation? Is authenticated logout/revoke in AUTH-001 scope?
+- Next owner: Architect/Backend for HTTP/filter persistence tests; CI operator for integration matrix; Security Reviewer for final release re-review.

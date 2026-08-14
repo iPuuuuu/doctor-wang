@@ -1,0 +1,29 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: QA Engineer (independent close-out review)
+- Status: BLOCKED
+- Scope changed: None. Read-only review of backend logout/V8, TLS deployment configuration, and Android logout/401 changes.
+- Files changed: `.ai/handoffs/AUTH-001/qa-closeout.md` only.
+- Decisions: Do not treat compilation or static review as a substitute for the failing backend suite, absent PostgreSQL migration execution, or absent Android behavior tests.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests 'com.ipuuuuu.doctorwang.mock.service.BackendServiceTest' --tests 'com.ipuuuuu.doctorwang.mock.controller.AuthHttpContractTest' --tests 'com.ipuuuuu.doctorwang.mock.config.AuthTokenFilterTest' && bash ./gradlew --no-daemon test` — FAIL. 21 focused tests executed; four `BackendServiceTest` cases failed. `logout revokes only the authenticated users current session` and `logout is idempotent when current session was already revoked` throw `NullPointerException` at the `Long` `ArgumentCaptor`; their broken verification contaminates subsequent Mockito state, causing `UnfinishedVerificationException` and `InvalidUseOfMatchersException` in the two login tests. The command stopped before a complete-suite result.
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon postgresIntegrationTest --stacktrace` — BLOCKED. Testcontainers failed before the test body with `IllegalStateException` from `DockerClientProviderStrategy`; no valid Docker environment/CLI/socket is available. Flyway V8, Hibernate validation, bcrypt migration, legacy-column removal, and DB constraint assertions did not execute.
+  - `bash ./gradlew --no-daemon test` — PASS for Android build/compilation. `:app:testDebugUnitTest` and `:app:testReleaseUnitTest` are `NO-SOURCE`; no Android logout or 401 session-clearing behavior test was executed.
+  - `git diff --check` — PASS.
+  - `docker compose --env-file deploy/.env.example -f deploy/docker-compose.yml config` — NOT RUN: `docker` CLI is absent.
+  - `nginx -t -c "$PWD/deploy/nginx/default.conf"` — NOT RUN: `nginx` CLI is absent.
+- Results and evidence:
+  - PASS — static TLS review: `deploy/docker-compose.yml` publishes `80:80` and `443:443`, mounts required `TLS_CERTS_DIR` read-only, and no backend host port is published. `deploy/nginx/default.conf` redirects port 80 with HTTPS 308, enables TLS 1.2/1.3 on 443, uses certificate/key files, sets HSTS, and forwards `X-Forwarded-Proto https`.
+  - PASS — source-level backend test intent: `AuthHttpContractTest` asserts missing bearer gives 401, valid logout returns 204, and a repeated logout with a fully bound revoked session returns 204. `BackendService.logout` uses JTI + authenticated database user ID and repository `coalesce` for idempotency. `PostgresIntegrationMatrixTest` contains (but could not run) assertions for V1–V8, BCrypt cost-12 prefix/match, removal of legacy `password`, non-null `password_hash`, 64-char `token_hash`, non-null JTI, and unique JTI constraint.
+  - FAIL — focused backend verification. The author-provided service tests are currently broken, so logout's user binding/idempotency and login regression evidence is not passing.
+  - FAIL — Android explicit logout does not invoke `POST /api/logout`: `RemoteDoctorWangRepository.logout()` only calls `sessionManager.clearSession()`, while `DoctorWangApi` has no logout endpoint. Consequently a user-initiated client logout does not revoke the bearer session server-side; the new server endpoint has no Android caller. This prevents end-to-end logout/revocation coverage.
+  - NOT RUN — Android 401 clearing behavior, password semantic rendering, request logging absence, and release cleartext transport behavior: no app test sources exist.
+  - BLOCKED — live V8 database evidence and Compose/Nginx execution are unavailable due to missing Docker/Nginx runtime.
+- Risks / privacy / quality concerns:
+  - P1 quality gate: the backend auth suite fails; repair its Mockito captor usage and rerun both focused and complete suites before acceptance.
+  - P1 functional/security gap: Android's user-initiated logout clears only local storage; it does not revoke the server session. Add a Retrofit logout contract and invoke it best-effort before local clearing, with a test proving local cleanup still happens if the request fails.
+  - P2 release evidence gap: the TLS configuration is statically coherent but unvalidated by `docker compose config`, `nginx -t`, or a real HTTPS smoke test.
+  - P2 migration evidence gap: the V8 test has appropriate assertions in source, but no PostgreSQL/Flyway execution occurred.
+- Open questions:
+  - None requiring product direction. The next work is bounded implementation/test repair plus execution in a Docker-capable environment.
+- Next owner: Backend Engineer to repair `BackendServiceTest` matcher/captor use; Android Engineer to wire and test server logout; QA then reruns the suite and Docker-backed migration/deploy checks.

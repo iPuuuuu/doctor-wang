@@ -1,0 +1,12 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Filter Contract Engineer
+- Status: READY_FOR_REVIEW
+- Scope changed: Added offline unit coverage for AuthTokenFilter rejection contract; no production API changes.
+- Files changed: `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/config/AuthTokenFilterTest.kt`
+- Decisions: Tests invoke the real OncePerRequestFilter with MockHttpServletRequest/MockHttpServletResponse/MockFilterChain and controlled Mockito collaborators. Missing Authorization, malformed bearer token, and an expired-token verification failure all assert HTTP 401 plus `AUTHENTICATION_REQUIRED`; downstream chain and repository are not reached. The expired case stubs JwtTokenService.verify to the same ApiException emitted by real expiry validation, keeping this contract test Docker-free while JwtTokenServiceTest owns cryptographic claim semantics.
+- Tests and exact commands: `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests com.ipuuuuu.doctorwang.mock.config.AuthTokenFilterTest`
+- Results and evidence: PASS; Gradle `BUILD SUCCESSFUL in 5s`, 3 tests executed (plus existing startup validation test).
+- Risks / privacy / quality concerns: This is filter-level contract coverage, not a full HTTP application-context test. PostgreSQL/Testcontainers integration and Android end-to-end auth remain outside this slice and are NOT RUN here.
+- Open questions: None for this bounded test slice.
+- Next owner: Backend Lead for review, then QA/Security Reviewer.

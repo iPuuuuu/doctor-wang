@@ -1,0 +1,19 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Architect
+- Status: VERIFIED
+- Scope changed: Verified and documented the current no-Docker backend-auth evidence slice; no runtime backend, Android, deployment, migration, or API behavior changed in this loop.
+- Files changed: `.ai/project-state.md`; `.ai/task-board.md`; `.ai/reports/authentication-test-plan.md`; `.ai/handoffs/AUTH-001/architect-autopilot.md`
+- Decisions: Do not keep the unstable `AuthHttpContractTest` experiment. The standalone MockMvc + filter wiring was not stable in this Kotlin/Spring test stack, and the existing `BackendServiceTest` already provides the smaller service-level login coverage named in project state. Keep AUTH-001 blocked overall because Docker-backed PostgreSQL/Flyway evidence and P1 TLS/non-demo credential migration controls remain unresolved.
+- Tests and exact commands:
+  - `cd /Users/a1234/code/doctor-wang/doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests '*BackendServiceTest'`
+  - `cd /Users/a1234/code/doctor-wang/doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests '*AuthTokenFilterTest'`
+  - `cd /Users/a1234/code/doctor-wang/doctor-wang-mock-server && git diff --check`
+- Results and evidence:
+  - `BackendServiceTest` PASS. Coverage proves unknown-account generic failure, wrong-password generic failure, account trimming, JWT issuance, token hashing, persisted `UserSessionEntity` semantics, and token/userId response on successful login.
+  - `AuthTokenFilterTest` PASS. Coverage proves missing token 401, malformed token 401, config error 503, revoked/expired persisted session 401, and valid session pass-through with `AuthContext` cleanup.
+  - `git diff --check` PASS.
+  - Updated matrix and current evidence are recorded in `.ai/reports/authentication-test-plan.md`.
+- Risks / privacy / quality concerns: No controller-level MockMvc auth contract was retained; real HTTP stack evidence is still weaker than a full web-layer test. This is acceptable only as an intermediate no-Docker slice and must not be misreported as final gate clearance.
+- Open questions: Is the next smallest slice Android auth instrumentation evidence, or should effort stay focused on Docker-capable CI execution plus the TLS/migration decisions?
+- Next owner: Architect

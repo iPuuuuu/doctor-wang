@@ -1,0 +1,19 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Architect (current rerun)
+- Status: VERIFIED
+- Scope changed: Re-executed the current stateful MockMvc logout/revoke regression that was absent when the earlier Quality REWORK handoff was written. No production code changed in this rerun.
+- Files changed: `.ai/handoffs/AUTH-001/architect-stateful-revoke-rerun.md` only.
+- Decisions: The stale Quality REWORK evidence is superseded for the bounded logout/revoke slice by current tests: real `BackendService` is wired to a stateful repository double, logout mutates the persisted session state, the next protected request receives 401, and cross-user/JTI mismatch cannot revoke a victim session. This remains test-double evidence, not PostgreSQL evidence.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests '*AuthHttpContractTest' --tests '*AuthTokenFilterTest' --tests '*BackendServiceTest'`
+  - `cd doctor-wang-mock-server && git diff --check`
+- Results and evidence:
+  - PASS — focused current suite completed `BUILD SUCCESSFUL in 6s`.
+  - PASS — stateful HTTP test `real backend logout revokes bearer and filter rejects it on the next protected request`.
+  - PASS — `cross user or jti mismatch cannot revoke a victim session`.
+  - PASS — exact method/path boundary, invalid/expired/revoked/configuration errors, login contract and service matcher repair.
+  - PASS — `git diff --check`.
+- Risks / privacy / quality concerns: The stateful repository is a test double; only PostgreSQL/Testcontainers can prove JPA transaction/schema persistence. Docker/Podman installation was attempted but Homebrew download did not complete.
+- Open questions: None requiring product direction; Docker-capable CI remains the only equivalent route to the PostgreSQL gate.
+- Next owner: CI/deployment operator; then Quality/Security Reviewer for final evidence re-review.

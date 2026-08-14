@@ -1,0 +1,24 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: QA Engineer
+- Status: BLOCKED
+- Scope changed: None (independent verification only). Reviewed the JWT credential/session changes, Flyway V8 migration, and the PostgreSQL/Testcontainers integration matrix.
+- Files changed: `.ai/handoffs/AUTH-001/qa.md` only.
+- Decisions: The PostgreSQL/Flyway migration release gate remains blocked until the integration matrix can run against a real Docker/Testcontainers environment. Backend unit tests are a supporting PASS, not a substitute for the database gate.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew test --rerun-tasks`
+  - `cd doctor-wang-mock-server && bash ./gradlew postgresIntegrationTest --stacktrace`
+  - `cd doctor-wang-mock-server && docker version`
+  - `cd doctor-wang-mock-server && rg -n -C 5 "Docker|IllegalStateException|Could not find" build/test-results/postgresIntegrationTest build/reports/tests/postgresIntegrationTest`
+- Results and evidence:
+  - `bash ./gradlew test --rerun-tasks`: PASS; process exited 0, 5 tasks executed. Backend tests completed successfully. Compilation emitted non-fatal warnings: unchecked JWT claims cast (`JwtTokenService.kt:56`) and nullable `JdbcTemplate.queryForObject` assertions (`PostgresIntegrationMatrixTest.kt:39-40`).
+  - `bash ./gradlew postgresIntegrationTest --stacktrace`: BLOCKED/failed at Testcontainers initialization before any test method ran (`1 test completed, 1 failed`, `initializationError`). Report `doctor-wang-mock-server/build/test-results/postgresIntegrationTest/TEST-com.ipuuuuu.doctorwang.mock.integration.PostgresIntegrationMatrixTest.xml` records `Could not find a valid Docker environment`; attempted Unix socket failed because `/var/run/docker.sock` is absent, Docker Desktop strategy had a null socket path, and docker-machine was not on PATH. This is an environment blocker, not evidence that V8 passed or failed.
+  - `docker version`: NOT RUN successfully; shell reports `docker: command not found`, independently confirming no usable Docker CLI in this environment.
+  - Static inspection confirms `V8__harden_user_credentials_and_jwt_sessions.sql` is present after V7 and performs the expected credential/session schema operations, but SQL execution, Hibernate validation, demo login, and migration behavior against PostgreSQL remain unverified without the integration environment.
+- Risks / security / medical concerns:
+  - P1 release risk: V8 adds a non-null `password_hash`, drops legacy `password`, renames `user_session.token`, and adds non-null/unique `jti`; this must be exercised on an empty schema and a seeded V1-V7 schema before release. Rollback/backup restore behavior is not verified here.
+  - P2 test quality risk: integration test compilation has nullable `queryForObject` warnings; no failure currently, but assertions should be made explicit if warning-free quality is required.
+  - P2 coverage gap: no running PostgreSQL means no evidence for Flyway ordering, schema constraints, BCrypt demo credential login, session persistence/revocation, or user isolation at DB level. No Android UI test sources are present (outside this bounded gate).
+  - No production code, real patient data, secrets, or runtime database was accessed or changed.
+- Open questions: Re-run `postgresIntegrationTest` on CI or a developer host with Docker/Podman configured for Testcontainers; archive the complete PASS report and verify V8 on both clean and V1-V7 seeded databases. Resolve or consciously accept the two nullable JDBC warnings.
+- Next owner: Architect to retain AUTH-001 as `READY_FOR_REVIEW`/blocked release gate, then request Security Reviewer sign-off and re-run this QA handoff after a Docker-capable integration environment is available.

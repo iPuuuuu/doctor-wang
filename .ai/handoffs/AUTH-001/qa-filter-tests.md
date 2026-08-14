@@ -1,0 +1,17 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: QA Engineer
+- Status: VERIFIED
+- Scope changed: Re-validated the focused authentication filter slice after new runtime tests were added; updated QA evidence only.
+- Files changed: `.ai/reports/authentication-test-plan.md`; `.ai/handoffs/AUTH-001/qa-filter-tests.md`
+- Decisions: The new filter-level tests provide fresh executable evidence for several previously uncovered runtime auth paths, but they do not clear the larger AUTH-001 release block. Controller/MockMvc, PostgreSQL/Testcontainers, TLS, Android release transport, and migration-runbook evidence remain outstanding as previously documented.
+- Tests and exact commands:
+  - `cd /Users/a1234/code/doctor-wang/doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests '*AuthTokenFilterTest'`
+- Results and evidence:
+  - PASS — Gradle `BUILD SUCCESSFUL in 6s`.
+  - Covered checks now include: missing Authorization (PASS), malformed bearer token (PASS), expired verifier rejection (PASS), config error returns 503 without session lookup (PASS), revoked persisted session rejected (PASS), expired persisted session rejected (PASS), valid persisted session reaches filter chain and clears `AuthContext` afterward (PASS).
+  - Still NOT RUN: controller/login HTTP contract tests, duplicate request behavior, cross-user endpoint isolation via real HTTP layer, Android unit/UI sources.
+  - Still BLOCKED: `postgresIntegrationTest` in Docker-less environment; TLS/non-demo credential migration release gates.
+- Risks / privacy / quality concerns: Fresh tests reduce the runtime-auth evidence gap but do not prove PostgreSQL/Flyway V8 execution, production transport safety, or non-demo credential migration safety. Do not mark AUTH-001 ACCEPT.
+- Open questions: Whether to add MockMvc/controller-layer auth tests inside AUTH-001 before seeking another security review.
+- Next owner: Architect

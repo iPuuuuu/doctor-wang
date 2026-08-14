@@ -1,0 +1,15 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Backend Engineer
+- Status: READY_FOR_REVIEW
+- Scope changed: Expanded focused `AuthTokenFilter` test coverage to provide executable runtime evidence for configuration errors, revoked/expired persisted sessions, and valid-session pass-through. No production code, API contract, migration, deployment, or Android files changed in this slice.
+- Files changed: `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/config/AuthTokenFilterTest.kt`
+- Decisions: Keep the slice test-only because the current filter behavior already matches the intended error semantics; the gap was missing automated evidence rather than missing implementation.
+- Tests and exact commands:
+  - `cd /Users/a1234/code/doctor-wang/doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests '*AuthTokenFilterTest'`
+- Results and evidence:
+  - PASS — Gradle `BUILD SUCCESSFUL in 6s`.
+  - New automated scenarios now cover: missing Authorization → 401, malformed bearer token → 401, expired verifier rejection → 401, configuration failure → 503 without session lookup, revoked persisted session → 401, expired persisted session → 401, valid persisted session → filter chain proceeds and `AuthContext` clears afterward.
+- Risks / privacy / quality concerns: This slice does not remove the larger AUTH-001 blockers: Docker-required PostgreSQL/V8 matrix, TLS, non-demo credential migration/runbook, Android release transport evidence, and logout/revoke endpoint design.
+- Open questions: Should a separate follow-up add MockMvc/controller-level auth-path tests for cross-endpoint 401/403 behavior, or is filter-level evidence sufficient until Docker-capable integration runs?
+- Next owner: QA Engineer

@@ -1,0 +1,27 @@
+## Handoff
+
+- Task ID: AUTH-001
+- Agent: Backend Engineer
+- Status: READY_FOR_REVIEW
+- Scope changed: Added test-only HTTP/filter regression coverage using a controlled stateful `UserSessionRepository` Mockito default-answer double. The logout request invokes the real `BackendService.logout`; no production, migration, deploy, or API files were changed.
+- Files changed:
+  - `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/controller/AuthHttpContractTest.kt`
+  - `.ai/handoffs/AUTH-001/backend-engineer-stateful-logout-http-regression.md`
+- Decisions:
+  - The stateful double stores only de-identified test session entities in memory and implements `findByJti` plus user-scoped `revokeByJtiAndUserId` behavior through a Mockito default answer.
+  - The regression drives `POST /api/logout` through `AuthTokenFilter` into a real `BackendService.logout`, then reuses the same bearer against a protected route and expects 401.
+  - A separate case supplies a same-JTI session owned by another user and an unknown JTI; both logout attempts are rejected by the filter and the victim session remains unrevoked.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests 'AuthHttpContractTest.real backend logout revokes bearer and filter rejects it on the next protected request'` — PASS.
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests '*AuthHttpContractTest'` — PASS.
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test` — PASS.
+  - `git diff --check` — PASS.
+- Results and evidence:
+  - Stateful HTTP/filter test proves the in-memory controlled session state receives the real service revoke operation and the filter denies the same bearer on the following protected request.
+  - Cross-user/JTI mismatch test proves filter binding prevents reaching revoke and does not mutate the victim state.
+- Risks / privacy / quality concerns:
+  - This is intentionally non-PostgreSQL test-double evidence. It does not prove the JPA update query, transaction/flush behavior, Flyway V8 migration, schema validation, or a real PostgreSQL persisted revocation. Those checks remain BLOCKED pending Docker/Testcontainers-capable CI or equivalent PostgreSQL environment.
+  - It uses no real patient data, credentials, tokens, or production session material.
+- Open questions:
+  - Execute `postgresIntegrationTest` and deployment TLS/Nginx smoke in a Docker-capable environment, then obtain independent QA/Quality re-review.
+- Next owner: Backend Lead / QA

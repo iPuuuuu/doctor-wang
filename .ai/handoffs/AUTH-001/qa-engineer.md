@@ -1,0 +1,21 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: QA Engineer
+- Status: BLOCKED
+- Scope changed: 仅更新 QA 测试证据与测试矩阵；未修改业务代码、数据库 migration 或构建配置。
+- Files changed: `.ai/reports/authentication-test-plan.md`; `.ai/handoffs/AUTH-001/qa-engineer.md`
+- Decisions: 认证垂直切片不能解除发布阻断。后端单元测试可复核通过，但 PostgreSQL/Flyway/Testcontainers 集成门禁因执行环境没有 Docker 被阻断；Android 当前无测试 source，无法将 UI/401 行为记为通过。
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew test`
+  - `cd doctor-wang-mock-server && bash ./gradlew postgresIntegrationTest --stacktrace`
+  - `bash ./gradlew test` (repository root / Android)
+  - `git diff --check`
+- Results and evidence:
+  - `bash ./gradlew test`: PASS，Gradle `BUILD SUCCESSFUL`；报告：`doctor-wang-mock-server/build/reports/tests/test/index.html`。
+  - `bash ./gradlew postgresIntegrationTest --stacktrace`: BLOCKED/failed at Testcontainers initialization (`1 test completed, 1 failed`); XML：`doctor-wang-mock-server/build/test-results/postgresIntegrationTest/TEST-com.ipuuuuu.doctorwang.mock.integration.PostgresIntegrationMatrixTest.xml`，原因为 `Could not find a valid Docker environment`、`NoSuchFileException (/var/run/docker.sock)`。
+  - 根目录 `bash ./gradlew test`: PASS build, but `testDebugUnitTest`/`testReleaseUnitTest` are `NO-SOURCE`; no Android unit/UI assertions were executed.
+  - `git diff --check`: PASS（退出码 0）。
+  - Existing `JwtTokenServiceTest` covers issue/identity and tamper rejection; `PasswordHasherTest` covers correct/wrong password and raw password absence. No automated evidence for expiry/issuer/audience/JTI/revocation filter, HTTP login/401 contract, duplicate request, or cross-user authenticated endpoint isolation.
+- Risks / security / medical concerns: 未验证 V8 在空库和存量 PostgreSQL 上的实际执行、约束与 demo 登录；未验证 token 撤销/过期在 HTTP filter 上的行为；未验证 Android 401 清 session、重复提交和日志脱敏。认证门禁保持 BLOCKED，不得宣称生产安全通过。测试仅使用脱敏 demo/integration 数据。
+- Open questions: 需要在具备 Docker/Testcontainers 的受控环境运行 `postgresIntegrationTest`，并补充 Spring MockMvc/集成测试（过期、错误 issuer/audience、缺 JTI、revoked JTI、token hash、用户 A/B 隔离）；Android 需要实际 unit/UI 测试 source。若继续使用现有测试矩阵，需明确旧 opaque session 迁移/重新登录验收标准。
+- Next owner: Backend Engineer（补齐认证 filter/HTTP 契约测试并在 Docker 环境复跑迁移）；Android Engineer（补充登录与 401 session 清理测试）；Security Reviewer（在上述证据后独立复核）；Architect（汇总并决定 ACCEPT/REWORK/BLOCK）。

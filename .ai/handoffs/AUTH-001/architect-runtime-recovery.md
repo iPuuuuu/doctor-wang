@@ -1,0 +1,20 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Architect
+- Status: BLOCKED
+- Scope changed: Per user authorization, attempted to create a local container runtime for the blocked integration gate and added a release-only Android server-URL transport guard. No production environment, real credentials, database, certificate, or remote service was accessed.
+- Files changed: `app/src/main/java/com/ipuuuuu/doctorwang/storage/SessionManager.kt`; `.ai/project-state.md`; `.ai/handoffs/AUTH-001/architect-runtime-recovery.md`.
+- Decisions: Release builds reject a saved non-HTTPS backend URL; debug retains local HTTP support. Do not claim PostgreSQL, Nginx, Compose, or APK behavior evidence from static checks. Stop the Podman installation attempt after repeated download-stage non-progress rather than leave an uncontrolled installer running.
+- Tests and exact commands:
+  - `command -v docker podman nerdctl colima lima nginx postgres psql pg_isready`
+  - `brew install podman podman-compose`
+  - `brew install podman --verbose`
+  - `bash ./gradlew --no-daemon test && git diff --check`
+- Results and evidence:
+  - BLOCKED — no Docker, Podman, nerdctl, Colima, Lima, Nginx, PostgreSQL, psql, or Docker/Podman socket is available.
+  - BLOCKED — both authorized Homebrew Podman installation attempts reached `Fetching downloads for: podman` and made no subsequent progress; each was interrupted without completing installation. `brew list --versions podman podman-compose` remained empty.
+  - PASS — Android root build/test task completed `BUILD SUCCESSFUL in 16s` after the release HTTPS URL guard; `testDebugUnitTest` and `testReleaseUnitTest` remain `NO-SOURCE`.
+  - PASS — `git diff --check` exits cleanly.
+- Risks / privacy / quality concerns: Release URL enforcement is compile-verified but has no device/unit test. Docker-backed V8, post-revoke persistence, Compose/Nginx syntax and real TLS smoke remain mandatory and cannot be safely replaced by a fake or in-memory check.
+- Open questions: A Docker-capable CI runner or controlled deployment host is required for the remaining evidence.
+- Next owner: CI/deployment operator for runtime evidence; QA/Security Reviewer then re-review.

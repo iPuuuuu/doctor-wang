@@ -1,0 +1,12 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Architect
+- Status: BLOCKED
+- Scope changed: Reviewed and accepted the startup-validation slice: fail-fast JWT secret/issuer/audience/TTL validation plus explicit boundary tests. No migration, deployment, API, or Android production changes were introduced.
+- Files changed: `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/config/AuthProperties.kt`; `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/{service/JwtTokenServiceTest.kt,config/AuthTokenFilterTest.kt}`; `.ai/reports/authentication-startup-validation-qa.md`; `.ai/handoffs/AUTH-001/{startup-validation-engineer,startup-validation-qa,architect-startup-validation}.md`; `.ai/project-state.md`; `.ai/task-board.md`.
+- Decisions: Treat this sub-slice as VERIFIED locally. Constructor validation is preferable to discovering invalid deployment configuration only when a token is issued. Keep the runtime signature guard as defense in depth. The former short-secret filter-503 test is not claimed as verified after fail-fast construction superseded that setup.
+- Tests and exact commands: `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --rerun-tasks`; `git diff --check`.
+- Results and evidence: Backend test PASS (`BUILD SUCCESSFUL in 6s`); explicit empty secret/issuer/audience, invalid TTL, valid TTL endpoints, JOSE and password tests pass; diff check PASS. QA handoff/report is VERIFIED for this slice. PostgreSQL/Testcontainers remains BLOCKED because Docker is unavailable.
+- Risks / privacy / medical concerns: Overall AUTH-001 remains BLOCKED by P1 TLS and demo-only V8 migration, plus runtime revoke/claims tests, Android release transport/logging, and live PostgreSQL evidence. No patient data or secrets were used.
+- Open questions: Which production TLS and credential reset/backfill controls are approved? Which Docker-capable CI will execute V8 and Hibernate validation? Is authenticated logout/revoke in AUTH-001 scope?
+- Next owner: Architect to continue the next executable HTTP/filter session-evidence slice while external release blockers remain tracked; QA/Security to independently review after that slice.

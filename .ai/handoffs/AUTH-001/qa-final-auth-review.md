@@ -1,0 +1,28 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: QA Engineer (independent final authentication re-review)
+- Status: VERIFIED
+- Scope changed: None. This was a read-only QA review of the exact public-route method/path lockdown and the `BackendServiceTest` logout matcher repair.
+- Files changed: `.ai/handoffs/AUTH-001/qa-final-auth-review.md` only.
+- Decisions: The previously reported Mockito/Kotlin matcher failures are no longer reproducible. The public bypass predicate is an exact application-relative route and HTTP-method allowlist: `POST /api/login`, `GET /healthz`, and `GET /`; all other requests pass through authentication. A revoked persisted session is admitted only to the exact `POST /api/logout` endpoint after JWT, user, JTI, token-hash, and expiry checks, preserving repeat-logout idempotency without opening other protected routes.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests '*AuthTokenFilterTest' --tests '*AuthHttpContractTest' --tests '*BackendServiceTest'`
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test`
+  - Static read-only inspection: `rg -n -i "(authorization|bearer|password|token|request body|requestBody|logback|logging\\.level|http.*log|interceptor|filter)" src/main src/test README.md src/main/resources/application.yml`
+- Results and evidence:
+  - PASS — focused serial Gradle command completed with `BUILD SUCCESSFUL in 7s`; all selected `AuthTokenFilterTest`, `AuthHttpContractTest`, and `BackendServiceTest` cases passed. This confirms the repaired Kotlin-safe Mockito matching used by both logout unit tests and removes the prior `InvalidUseOfMatchersException`/captor failure as a reproducible regression.
+  - PASS — complete serial backend command completed with `BUILD SUCCESSFUL in 9s`; five Gradle tasks were actionable (one executed, four up-to-date). The only console advisory was the existing Gradle 9 deprecation warning; it did not fail the suite.
+  - PASS — normal and anonymous flows are represented by the contract tests: `POST /api/login` is admitted without a bearer and delegates login; missing bearer on protected profile and logout receives the stable 401 `AUTHENTICATION_REQUIRED`; a valid JWT plus matching persisted session reaches profile and logout.
+  - PASS — method/path boundary coverage is explicit in `AuthTokenFilterTest`: context-path-normalized `POST /gateway/api/login` (context `/gateway`) is admitted; `GET /api/login`, `POST /healthz`, `HEAD /`, `POST /api/login/`, `GET /healthz/`, `GET /healthz/ready`, and `GET /api/login/extra` receive 401 and do not invoke the filter chain. This independently closes the prior method-agnostic public-route bypass at the unit-filter level.
+  - PASS — invalid/expired bearer, invalid auth configuration (503), revoked session (401 outside logout), expired persisted session (401), and valid persisted session behavior are covered by the focused filter suite. The HTTP contract additionally covers valid logout and repeated logout against an already-revoked current session (204), while `BackendServiceTest` verifies revocation is scoped to the authenticated JTI and database user ID.
+  - PASS — source inspection found no application logger/`println` request-body, Authorization, raw JWT, or password emission in the authentication filter, controller, or backend service. Raw bearer data is used in memory to verify/hash and is not written by these classes. This finding is limited to the reviewed source; it is not an end-to-end production logging certification.
+  - NOT RUN — `postgresIntegrationTest` / live Flyway V8 migration: Docker/Testcontainers is unavailable in the environment, as recorded in project state. Owner: Architect/QA with Docker-capable CI. This remains an integration release gate.
+  - NOT RUN — real network, timeout/retry, Android runtime transport/session-clearing, and deployment/TLS smoke checks. They are outside this focused backend re-review and remain owned by the respective QA/Quality/Deployment reviewers.
+- Risks / security / medical concerns:
+  - BLOCKED (release gate, pre-existing and not resolved by this re-review) — live PostgreSQL/Flyway migration evidence is absent because Docker is unavailable.
+  - BLOCKED (release/security gate, pre-existing) — deployment remains HTTP-only and the V8 credential conversion is demo-oriented; see the retained Security Reviewer findings in `.ai/reports/authentication-autopilot-security.md`. The default datasource password and production transport/revocation controls still require the designated security/deployment work.
+  - The test suite demonstrates behavior in unit/MockMvc scope only; deployment proxy path handling and a live database session revoke still need independent evidence.
+- Open questions:
+  - Does Docker-capable CI pass `bash ./gradlew --no-daemon postgresIntegrationTest --stacktrace` against a clean PostgreSQL instance, including V8 migration and session uniqueness assertions?
+  - When will the deployment/security owner provide HTTPS termination, non-demo credential migration, and production secret management evidence required to unblock AUTH-001 release acceptance?
+- Next owner: Quality Reviewer for independent scope/privacy/release-risk confirmation, then Architect to retain the broader BLOCK decision or route remaining security/deployment work. This QA handoff does not declare task acceptance.

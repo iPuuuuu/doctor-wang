@@ -1,0 +1,17 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: QA Engineer (autopilot filter-fix independent verification)
+- Status: IN_PROGRESS
+- Scope changed: QA evidence only; no application, test, build, deployment, migration, or Android code was changed.
+- Files changed: `.ai/handoffs/AUTH-001/qa-autopilot-filter-fix.md`; `.ai/reports/authentication-filter-fix-qa.md`.
+- Decisions: The requested Gradle verification is intentionally deferred until the Architect releases the shared Gradle execution slot, to prevent shared-cache/output interference with another active verification. Static review is not treated as runtime PASS.
+- Tests and exact commands:
+  - `git diff --check` — PASS (no whitespace errors).
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --tests 'com.ipuuuuu.doctorwang.mock.controller.AuthHttpContractTest' --tests 'com.ipuuuuu.doctorwang.mock.config.AuthTokenFilterTest' --tests 'com.ipuuuuu.doctorwang.mock.service.BackendServiceTest'` — NOT RUN (deferred by Architect while shared Gradle execution is occupied).
+- Results and evidence:
+  - PASS (static): `AuthTokenFilter.shouldNotFilter` uses exact equality against only `/api/login`, `/healthz`, and `/`; the changed route source normalizes `requestURI` by `contextPath`. The visible contract test covers anonymous `GET /api/profile` → 401, `POST /api/login` → 200, and valid persisted-session `GET /api/profile` → 200.
+  - NOT RUN (runtime): the three required focused test classes; no independent executable assertion is claimed yet.
+  - Test-gap risk: current visible tests do not explicitly assert that `/api/login/`, `/api/login/anything`, or a similarly prefixed protected route remains filtered. Exact source matching is favorable but requires executable negative-path evidence before this slice can be VERIFIED.
+- Risks / security / medical concerns: AUTH-001 remains BLOCKED at existing PostgreSQL/Flyway, TLS, credential-migration, and broader release-evidence gates. This focused QA pass must not be read as production verification. No patient data, credentials, or tokens were introduced into QA artifacts.
+- Open questions: After the focused suite completes, should Backend Engineer add an explicit allow-list-boundary test for trailing/slash-descendant login paths if the current tests do not already prove it?
+- Next owner: QA Engineer after Gradle slot release; then Backend Lead and Quality Reviewer.

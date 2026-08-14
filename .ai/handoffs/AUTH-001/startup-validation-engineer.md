@@ -1,0 +1,29 @@
+## Handoff
+- Task ID: AUTH-001
+- Agent: Backend Engineer (startup validation)
+- Status: READY_FOR_REVIEW
+- Scope changed: JWT configuration validation only; no migration, deploy, or API changes.
+- Files changed:
+  - `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/config/AuthProperties.kt`
+  - `doctor-wang-mock-server/src/main/kotlin/com/ipuuuuu/doctorwang/mock/service/JwtTokenService.kt`
+  - `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/service/JwtTokenServiceTest.kt`
+  - `doctor-wang-mock-server/src/test/kotlin/com/ipuuuuu/doctorwang/mock/config/AuthTokenFilterTest.kt`
+- Decisions:
+  - Validate security-sensitive properties in `AuthProperties` construction so Spring Boot configuration binding fails fast at startup.
+  - Require JWT secret length >= 32 characters.
+  - Require issuer/audience to be non-blank, <=256 characters, and free of whitespace/control characters.
+  - Keep TTL constrained to 1..86,400 seconds.
+  - Retain `JwtTokenService.signature` fail-closed guard as defense in depth for runtime/misconfigured construction paths.
+- Tests and exact commands:
+  - `cd doctor-wang-mock-server && bash ./gradlew --no-daemon test --rerun-tasks`
+  - `git diff --check`
+- Results and evidence:
+  - Gradle test: PASS, `BUILD SUCCESSFUL in 7s`.
+  - Diff whitespace check: PASS.
+  - Added coverage for short secret, blank issuer, whitespace audience, and existing TTL lower/upper bounds.
+- Risks / privacy / quality concerns:
+  - Existing deployments with secrets shorter than 32 characters will fail startup by design; operators must rotate configuration.
+  - Validation errors include property names and constraints only; secret value is never included.
+  - Full PostgreSQL/Testcontainers integration remains separately blocked by unavailable Docker runtime.
+- Open questions: None for this bounded slice.
+- Next owner: Lead for review, then QA and Security Reviewer.
