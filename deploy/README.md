@@ -3,10 +3,11 @@
 本目录提供 Doctor-Wang 第一版真实后端的单机部署资产，适用于一台 Linux 服务器通过 Docker Compose 启动：
 
 - PostgreSQL
-- Spring Boot backend
+- Spring Boot backend（含 `/healthz` 与 `/actuator/health`）
+- AI Service（FastAPI，`AI_SERVICE_ENABLED` 开关）
 - Nginx TLS 终止与反向代理
 
-这是一套部署基线，不是完整的生产发布方案。它不会自动签发或轮换证书，也不包含监控、告警、高可用或 AI Service 编排。
+这是一套部署基线，不是完整的生产发布方案。它不会自动签发或轮换证书，也不包含监控、告警或高可用编排（见 `.ai/decisions/ADR-0009`）。
 
 ## 1. 前置要求
 
@@ -22,7 +23,7 @@
 
 ## 2. 目录说明
 
-- `docker-compose.yml`：启动 postgres、backend、nginx
+- `docker-compose.yml`：启动 postgres、backend、ai-service、nginx
 - `nginx/default.conf`：Nginx 反向代理配置
 - `.env.example`：部署环境变量模板
 
@@ -130,16 +131,17 @@ docker compose --env-file .env up -d --build
 
 当前部署资产已覆盖：
 
-- 登录
-- 档案读取
+- 登录（JWT + 服务端可撤销 session）
+- 档案读取/编辑、密码修改
 - 聊天消息持久化
-- 报告记录持久化
-- token 鉴权
+- 报告记录持久化、multipart 上传（MIME/magic number/大小校验 + 病毒扫描 fail-closed）、文件下载、处理状态查询
+- token 鉴权（精确 path+method 过滤）
 
 但暂未覆盖：
 
-- 真正的 multipart 文件上传
-- OCR / 结构化解析
-- HTTPS 自动签发或证书轮换
-- 生产级监控告警
+- 真实 OCR / 结构化解析（需 OCR 端点，开发态走 mock 解析）
+- pgvector 真实语义检索（需 embedding provider；当前 FakeEmbeddingProvider）
+- HTTPS 自动签发或证书轮换（见 ADR-0009 DEPLOY-001b）
+- 生产级监控告警 / 高可用（见 ADR-0009 DEPLOY-001b）
+- ClamAV 容器编排（见 ADR-0008/0009；代码侧 `VIRUS_SCAN_ENABLED` 已就绪）
 - 高可用部署
