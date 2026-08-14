@@ -14,6 +14,8 @@ pytest
 
 `PgVectorStore` 使用后端批准的 `ai_vector_chunk` 表（`namespace`、`chunk_id`、`content`、`embedding vector`、`metadata jsonb`，并以 `(namespace, chunk_id)` 唯一约束）；本次不会创建或修改该表的 Flyway migration。`DW_AI_OBJECT_STORE_ROOT` 配置 `objectKey` 的本地开发根目录，job state 默认保存到 SQLite 文件；这些都是开发态实现。
 
+`POST /internal/v1/ingestions/{jobId}/retry` 只在 job 为 `FAILED` 或 `REVIEW_REQUIRED` 且存在脱敏请求元数据时重放；原始文件内容不会写入 job state。该接口仍是开发态契约，生产需要持久化 job store、幂等审计和服务级认证。
+
 可配置 provider：
 
 - `DW_AI_EMBEDDING_ENDPOINT`：OpenAI-compatible `/embeddings` endpoint

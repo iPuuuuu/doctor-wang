@@ -7,14 +7,16 @@ from .schemas import IngestionRequest, IngestionResponse, RagRequest, RagRespons
 from .parsing import DocumentTypeRouter
 from .chunking import chunk_pages
 from .embeddings import FakeEmbeddingProvider
-from .vectorstore import InMemoryVectorStore, VectorRecord
+from .vectorstore import InMemoryVectorStore, VectorRecord, create_vector_store
 from .graph import build_rag_graph
 from .jobs import JobRepository
 from .providers import ConfiguredOcrProvider, OpenAICompatibleEmbeddingProvider, OpenAICompatibleGenerationProvider
 from .safety import evaluate_medical_risk
+from .agent_schemas import AgentRequest, AgentResponse
+from .agent_graph import agent_graph, AgentState
 
-app = FastAPI(title="Doctor-Wang AI Service", version="0.1.0")
-store = InMemoryVectorStore()
+app = FastAPI(title="Doctor-Wang AI Service", version="0.2.0")
+store = create_vector_store(settings.database_url)
 embedder = OpenAICompatibleEmbeddingProvider(settings.embedding_endpoint, settings.embedding_api_key, settings.embedding_model, settings.embedding_dimensions, settings.provider_timeout_seconds) if settings.embedding_endpoint else FakeEmbeddingProvider(settings.embedding_dimensions, settings.embedding_model)
 generator = OpenAICompatibleGenerationProvider(settings.llm_endpoint, settings.llm_api_key, settings.llm_model, settings.provider_timeout_seconds) if settings.llm_endpoint else None
 ocr = ConfiguredOcrProvider(settings.ocr_endpoint, settings.ocr_api_key, settings.provider_timeout_seconds) if settings.ocr_endpoint else None
@@ -60,6 +62,9 @@ def ingest(request: IngestionRequest, x_internal_token: str | None = Header(defa
         job_id = str(uuid.uuid4()); payload = {"status": "REVIEW_REQUIRED", "reportId": request.reportId, "traceId": request.traceId, "requiresReview": True}
     except Exception as exc:
         raise HTTPException(status_code=422, detail=f"document processing failed: {type(exc).__name__}") from exc
+    # Persist replay metadata only; never persist report bytes, OCR text,
+    # prompts, tokens, or credentials in job state.
+    payload["request"] = request.model_dump(exclude={"fileBase64"})
     job_repo.save(job_id, payload)
     return IngestionResponse(jobId=job_id, status=payload["status"])
 
@@ -72,6 +77,20 @@ def ingestion_status(job_id: str, x_internal_token: str | None = Header(default=
     return {"jobId": job_id, **payload}
 
 
+@app.post("/internal/v1/ingestions/{job_id}/retry", response_model=IngestionResponse, status_code=202)
+def ingestion_retry(job_id: str, x_internal_token: str | None = Header(default=None)):
+    authenticate(x_internal_token)
+    payload = job_repo.get(job_id)
+    if not payload:
+        raise HTTPException(status_code=404, detail="job not found")
+    if payload.get("status") not in {"FAILED", "REVIEW_REQUIRED"}:
+        raise HTTPException(status_code=409, detail="job is not retryable")
+    request_data = payload.get("request")
+    if not request_data:
+        raise HTTPException(status_code=409, detail="retry metadata is unavailable")
+    return ingest(IngestionRequest.model_validate(request_data), x_internal_token)
+
+
 @app.post("/internal/v1/rag/query", response_model=RagResponse)
 def rag_query(request: RagRequest, x_internal_token: str | None = Header(default=None)):
     authenticate(x_internal_token)
@@ -79,6 +98,14 @@ def rag_query(request: RagRequest, x_internal_token: str | None = Header(default
     if blocked:
         return RagResponse(requestId=request.requestId, status="SAFETY_BLOCKED", riskLevel=risk_level, summary="当前问题可能涉及紧急危险信号，请立即联系急救服务或尽快就医。", citations=[], warnings=warnings, needsReview=True, traceId=request.traceId)
     return rag_graph.invoke({"request": request, "store": store, "embedder": embedder, "generator": generator})["response"]
+
+
+@app.post("/internal/v1/agent/query", response_model=AgentResponse)
+def agent_query(request: AgentRequest, x_internal_token: str | None = Header(default=None)):
+    authenticate(x_internal_token)
+    state: AgentState = {"request": request, "store": store, "embedder": embedder, "generator": generator}
+    result = agent_graph.invoke(state)
+    return result["response"]
 
 
 @app.delete("/internal/v1/indexes/{namespace}")

@@ -63,3 +63,16 @@ class PgVectorStore:
 
 def _vector_literal(vector: list[float]) -> str:
     return "[" + ",".join(f"{value:.8f}" for value in vector) + "]"
+
+
+def create_vector_store(database_url: str | None = None) -> InMemoryVectorStore | PgVectorStore:
+    """Factory: returns PgVectorStore if database_url is configured, else InMemoryVectorStore.
+
+    PgVectorStore connects to the backend-owned ai_vector_chunk table.
+    InMemoryVectorStore is used for development/testing when no PostgreSQL is available.
+    """
+    if database_url:
+        import psycopg2
+        conn = psycopg2.connect(database_url)
+        return PgVectorStore(conn, table="ai_vector_chunk")
+    return InMemoryVectorStore()
