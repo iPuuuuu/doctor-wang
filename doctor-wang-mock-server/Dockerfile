@@ -1,6 +1,9 @@
 # syntax=docker/dockerfile:1
 # ADR-0007: Java 21 LTS runtime (2026-08-14)
 FROM eclipse-temurin:21-jdk AS build
+# 1.6GB 内存 VPS：限制构建期 Gradle/JVM 内存，避免 OOM
+ENV GRADLE_OPTS="-Xmx512m -Dorg.gradle.jvmargs=-Xmx512m"
+ENV JAVA_TOOL_OPTIONS="-Xmx512m"
 WORKDIR /workspace
 COPY gradlew gradlew
 COPY gradle gradle
