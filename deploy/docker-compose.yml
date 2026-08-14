@@ -66,6 +66,18 @@ services:
       DW_AI_INTERNAL_TOKEN: ${AI_SERVICE_INTERNAL_TOKEN:?AI_SERVICE_INTERNAL_TOKEN must be set}
       DW_AI_OBJECT_STORE_ROOT: /shared-report-files
       DW_AI_JOB_STATE_PATH: /data/ai-jobs.sqlite3
+      # 真实 provider 透传：与后端共享 PostgreSQL（pgvector 生产向量库）
+      DW_AI_DATABASE_URL: postgresql://${POSTGRES_USER:-doctor_wang}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB:-doctor_wang}
+      DW_AI_LLM_ENDPOINT: ${DW_AI_LLM_ENDPOINT:?DW_AI_LLM_ENDPOINT must be set in .env}
+      DW_AI_LLM_API_KEY: ${DW_AI_LLM_API_KEY:?DW_AI_LLM_API_KEY must be set in .env}
+      DW_AI_LLM_MODEL: ${DW_AI_LLM_MODEL:-deepseek-v4-flash}
+      DW_AI_EMBEDDING_ENDPOINT: ${DW_AI_EMBEDDING_ENDPOINT:?DW_AI_EMBEDDING_ENDPOINT must be set in .env}
+      DW_AI_EMBEDDING_API_KEY: ${DW_AI_EMBEDDING_API_KEY:?DW_AI_EMBEDDING_API_KEY must be set in .env}
+      DW_AI_EMBEDDING_MODEL: ${DW_AI_EMBEDDING_MODEL:-embedding-3}
+      DW_AI_EMBEDDING_DIMENSIONS: ${DW_AI_EMBEDDING_DIMENSIONS:-2048}
+      DW_AI_OCR_ENDPOINT: ${DW_AI_OCR_ENDPOINT:-}
+      DW_AI_OCR_API_KEY: ${DW_AI_OCR_API_KEY:-}
+      DW_AI_OCR_MODEL: ${DW_AI_OCR_MODEL:-qwen-vl-ocr}
     volumes:
       - report_files:/shared-report-files:ro
       - ai_job_state:/data
