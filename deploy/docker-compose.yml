@@ -1,6 +1,8 @@
 services:
   postgres:
     image: pgvector/pgvector:pg16  # pgvector 扩展（V6/V9 依赖，与 Testcontainers 一致）
+    # 1.6GB VPS：限制 PG 内存与连接数
+    command: ["postgres", "-c", "shared_buffers=64MB", "-c", "max_connections=50", "-c", "work_mem=4MB"]
     container_name: doctor-wang-postgres
     restart: unless-stopped
     environment:
@@ -33,8 +35,8 @@ services:
       APP_AUTH_JWT_ISSUER: ${APP_AUTH_JWT_ISSUER:-doctor-wang-backend}
       APP_AUTH_JWT_AUDIENCE: ${APP_AUTH_JWT_AUDIENCE:-doctor-wang-android}
       APP_AUTH_JWT_TTL_SECONDS: ${APP_AUTH_JWT_TTL_SECONDS:-3600}
-      # 1.6GB 内存 VPS：限制 JVM 堆
-      JAVA_TOOL_OPTIONS: -Xmx384m
+      # 1.6GB 内存 VPS：限制 JVM 堆与元空间
+      JAVA_TOOL_OPTIONS: -Xmx384m -XX:MaxMetaspaceSize=192m -Xss512k
       SERVER_ADDRESS: 0.0.0.0
       PORT: 8080
       APP_AI_SERVICE_ENABLED: ${AI_SERVICE_ENABLED:-false}
