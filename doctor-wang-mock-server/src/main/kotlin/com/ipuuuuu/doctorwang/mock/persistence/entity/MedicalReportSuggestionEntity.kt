@@ -24,4 +24,6 @@ class MedicalReportSuggestionEntity(
     val suggestionText: String,
     @Column(name = "created_at", nullable = false)
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
-)
+) {
+    protected constructor() : this(report = MedicalReportEntity(user = AppUserEntity(userId = "", account = "", passwordHash = "", name = "", age = 0, height = 0, weight = 0f), title = "", reportDate = "", reportType = "", summary = "", status = ""), suggestionText = "")
+}

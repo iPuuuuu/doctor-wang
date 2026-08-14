@@ -14,4 +14,6 @@ class MedicalReportFileEntity(
     @Column(name = "file_size", nullable = false) val fileSize: Long,
     @Column(nullable = false, length = 64) val sha256: String,
     @Column(name = "created_at", nullable = false) val createdAt: OffsetDateTime = OffsetDateTime.now(),
-)
+) {
+    protected constructor() : this(report = MedicalReportEntity(user = AppUserEntity(userId = "", account = "", passwordHash = "", name = "", age = 0, height = 0, weight = 0f), title = "", reportDate = "", reportType = "", summary = "", status = ""), storageKey = "", originalFileName = "", mimeType = "", fileSize = 0L, sha256 = "")
+}

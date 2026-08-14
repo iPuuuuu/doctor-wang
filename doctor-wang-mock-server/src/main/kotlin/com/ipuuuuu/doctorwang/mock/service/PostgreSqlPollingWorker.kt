@@ -19,9 +19,9 @@ class PostgreSqlPollingWorker(
     @Value("\${app.report-processing.max-attempts:3}") private val maxAttempts: Int,
 ) {
     @Scheduled(fixedDelayString = "\${app.report-processing.poll-interval-ms:5000}")
+    @Transactional
     fun poll() { if (enabled) processAvailable() }
 
-    @Transactional
     fun processAvailable() {
         val now = OffsetDateTime.now()
         jobs.recoverExpired(now)

@@ -58,7 +58,8 @@ class ChatService(
                 userId = user.id,
                 reportId = latestReport.id,
                 question = message,
-                namespaceHints = listOf("report:${user.userId}:${latestReport.id}"),
+                // namespace 契约 report:{数字 userId}:{reportId}（与 ingest 一致）；user.userId 是字符串标识，不可用于 namespace
+                namespaceHints = listOf("report:${user.id}:${latestReport.id}"),
                 traceId = TraceIdContext.get(),
             )
             val aiResponse = aiClient.query(request)

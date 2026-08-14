@@ -23,7 +23,7 @@ captures/
 .gradle-home/
 
 # Local test-run logs
-.gradle-*.log
+*.log
 .pytest-ai.log
 
 # Kotlin compile caches

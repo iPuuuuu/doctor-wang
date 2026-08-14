@@ -30,4 +30,6 @@ class UserSessionEntity(
     val expiresAt: OffsetDateTime,
     @Column(name = "revoked_at")
     var revokedAt: OffsetDateTime? = null,
-)
+) {
+    protected constructor() : this(jti = "", tokenHash = "", user = AppUserEntity(userId = "", account = "", passwordHash = "", name = "", age = 0, height = 0, weight = 0f), expiresAt = OffsetDateTime.now())
+}

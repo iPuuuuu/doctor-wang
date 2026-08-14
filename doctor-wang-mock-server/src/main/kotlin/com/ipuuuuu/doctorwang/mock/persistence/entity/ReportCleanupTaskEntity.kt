@@ -16,4 +16,6 @@ class ReportCleanupTaskEntity(
     @Column(name = "trace_id", nullable = false, length = 128) val traceId: String,
     @Column(name = "created_at", nullable = false) val createdAt: OffsetDateTime = OffsetDateTime.now(),
     @Column(name = "updated_at", nullable = false) var updatedAt: OffsetDateTime = OffsetDateTime.now(),
-)
+) {
+    protected constructor() : this(storageKey = "", reason = "", traceId = "")
+}

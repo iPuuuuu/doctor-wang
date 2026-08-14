@@ -32,4 +32,6 @@ class ReportProcessingJobEntity(
     @Column(name = "active_index_version", length = 128) var activeIndexVersion: String? = null,
     @Column(name = "ai_job_id", length = 128) var aiJobId: String? = null,
     @Column(name = "idempotency_key", length = 128) var idempotencyKey: String? = null,
-)
+) {
+    protected constructor() : this(id = UUID.randomUUID(), report = MedicalReportEntity(user = AppUserEntity(userId = "", account = "", passwordHash = "", name = "", age = 0, height = 0, weight = 0f), title = "", reportDate = "", reportType = "", summary = "", status = ""), status = "", stage = "", traceId = "")
+}

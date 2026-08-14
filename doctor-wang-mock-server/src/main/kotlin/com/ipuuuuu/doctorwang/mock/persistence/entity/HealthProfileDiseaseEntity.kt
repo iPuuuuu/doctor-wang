@@ -24,4 +24,6 @@ class HealthProfileDiseaseEntity(
     val diseaseName: String,
     @Column(name = "created_at", nullable = false)
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
-)
+) {
+    protected constructor() : this(user = AppUserEntity(userId = "", account = "", passwordHash = "", name = "", age = 0, height = 0, weight = 0f), diseaseName = "")
+}

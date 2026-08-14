@@ -16,4 +16,6 @@ class ReportUploadIdempotencyEntity(
     @Column(name = "response_snapshot", nullable = false, columnDefinition = "text") val responseSnapshot: String,
     @Column(name = "created_at", nullable = false) val createdAt: OffsetDateTime = OffsetDateTime.now(),
     @Column(name = "expires_at", nullable = false) val expiresAt: OffsetDateTime,
-)
+) {
+    protected constructor() : this(user = AppUserEntity(userId = "", account = "", passwordHash = "", name = "", age = 0, height = 0, weight = 0f), idempotencyKey = "", requestDigest = "", report = MedicalReportEntity(user = AppUserEntity(userId = "", account = "", passwordHash = "", name = "", age = 0, height = 0, weight = 0f), title = "", reportDate = "", reportType = "", summary = "", status = ""), processingJobId = UUID.randomUUID(), responseSnapshot = "", expiresAt = OffsetDateTime.now())
+}

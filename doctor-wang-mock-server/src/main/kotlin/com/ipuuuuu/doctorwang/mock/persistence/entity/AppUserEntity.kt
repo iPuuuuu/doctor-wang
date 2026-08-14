@@ -32,4 +32,6 @@ class AppUserEntity(
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
     @Column(name = "updated_at", nullable = false)
     var updatedAt: OffsetDateTime = OffsetDateTime.now(),
-)
+) {
+    protected constructor() : this(userId = "", account = "", passwordHash = "", name = "", age = 0, height = 0, weight = 0f)
+}

@@ -34,4 +34,6 @@ class MedicalReportEntity(
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
     @Column(name = "updated_at", nullable = false)
     var updatedAt: OffsetDateTime = OffsetDateTime.now(),
-)
+) {
+    protected constructor() : this(user = AppUserEntity(userId = "", account = "", passwordHash = "", name = "", age = 0, height = 0, weight = 0f), title = "", reportDate = "", reportType = "", summary = "", status = "")
+}

@@ -63,7 +63,7 @@ management:
     health:
       show-details: never
   ai-service:
-    enabled: ${AI_SERVICE_ENABLED:false}
-    base-url: ${AI_SERVICE_BASE_URL:http://localhost:8000}
-    internal-token: ${AI_SERVICE_INTERNAL_TOKEN:}
+    enabled: ${APP_AI_SERVICE_ENABLED:false}
+    base-url: ${APP_AI_SERVICE_BASE_URL:http://localhost:8000}
+    internal-token: ${APP_AI_SERVICE_INTERNAL_TOKEN:}
     source-version: ${AI_SERVICE_SOURCE_VERSION:upload-v1}
