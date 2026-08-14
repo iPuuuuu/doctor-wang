@@ -21,6 +21,7 @@ import com.ipuuuuu.doctorwang.viewmodel.ProfileViewModel
 
 @Composable
 fun HealthProfileScreen(
+    onEditClick: () -> Unit = {},
     onSessionExpired: () -> Unit,
     viewModel: ProfileViewModel = hiltViewModel(),
 ) {

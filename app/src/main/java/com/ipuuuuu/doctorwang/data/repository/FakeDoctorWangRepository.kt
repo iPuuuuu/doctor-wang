@@ -1,6 +1,7 @@
 package com.ipuuuuu.doctorwang.data.repository
 
 import android.net.Uri
+import com.ipuuuuu.doctorwang.data.api.ReportListItem
 import com.ipuuuuu.doctorwang.data.model.HealthRecord
 import com.ipuuuuu.doctorwang.data.model.MedicalReport
 import com.ipuuuuu.doctorwang.data.model.Message
@@ -8,6 +9,7 @@ import com.ipuuuuu.doctorwang.data.model.MessageStatus
 import com.ipuuuuu.doctorwang.data.model.UserProfile
 import com.ipuuuuu.doctorwang.storage.SessionManager
 import kotlinx.coroutines.delay
+import okhttp3.ResponseBody
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -51,6 +53,16 @@ class FakeDoctorWangRepository @Inject constructor(
         }
     }
 
+    override suspend fun register(account: String, password: String, name: String, age: Int, height: Int, weight: Float): Result<Unit> {
+        delay(1000)
+        return if (account.isNotBlank() && password.length >= 6 && name.isNotBlank()) {
+            sessionManager.saveSession(token = "mock-token", userId = "u2001")
+            Result.success(Unit)
+        } else {
+            Result.failure(IllegalArgumentException("请填写完整的注册信息"))
+        }
+    }
+
     override suspend fun logout() {
         sessionManager.clearSession()
     }
@@ -62,6 +74,20 @@ class FakeDoctorWangRepository @Inject constructor(
     override suspend fun getProfile(): UserProfile {
         delay(250)
         return profile
+    }
+
+    override suspend fun updateProfile(name: String?, age: Int?, height: Int?, weight: Float?): Result<UserProfile> {
+        delay(500)
+        return Result.success(profile)
+    }
+
+    override suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit> {
+        delay(500)
+        return if (oldPassword.isNotBlank() && newPassword.length >= 6) {
+            Result.success(Unit)
+        } else {
+            Result.failure(IllegalArgumentException("密码长度不能少于6位"))
+        }
     }
 
     override suspend fun getHealthProfile(): UserProfile {
@@ -133,5 +159,37 @@ class FakeDoctorWangRepository @Inject constructor(
             requiresReview = false,
             failureCategory = null,
         )
+    }
+
+    override suspend fun listReports(page: Int, size: Int): Result<ReportPage> {
+        delay(300)
+        return Result.success(
+            ReportPage(
+                items = listOf(
+                    ReportListItem(
+                        reportId = 10001,
+                        title = "腹部超声",
+                        reportDate = "2026-06-17",
+                        reportType = "影像报告",
+                        status = "COMPLETED",
+                        summary = "AI 初步判断存在轻度脂肪肝倾向。",
+                    ),
+                    ReportListItem(
+                        reportId = 10002,
+                        title = "血液检查",
+                        reportDate = "2026-07-01",
+                        reportType = "血液检查",
+                        status = "COMPLETED",
+                        summary = "各项指标基本正常。",
+                    ),
+                ),
+                totalPages = 1,
+            ),
+        )
+    }
+
+    override suspend fun downloadReportFile(reportId: Long): Result<ResponseBody> {
+        delay(500)
+        return Result.failure(UnsupportedOperationException("离线模式下不支持文件下载"))
     }
 }

@@ -7,7 +7,6 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
-import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -20,10 +19,6 @@ class NetworkProvider @Inject constructor(
         ignoreUnknownKeys = true
     }
 
-    private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        level = HttpLoggingInterceptor.Level.BODY
-    }
-
     private val authInterceptor = okhttp3.Interceptor { chain ->
         val token = runBlocking { sessionManager.getToken() }
         val request = chain.request().newBuilder().apply {
@@ -31,12 +26,15 @@ class NetworkProvider @Inject constructor(
                 header("Authorization", "Bearer $token")
             }
         }.build()
-        chain.proceed(request)
+        chain.proceed(request).also { response ->
+            if (response.code == 401) {
+                runBlocking { sessionManager.clearSession() }
+            }
+        }
     }
 
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
-        .addInterceptor(loggingInterceptor)
         .build()
 
     fun createApi(baseUrl: String): DoctorWangApi {

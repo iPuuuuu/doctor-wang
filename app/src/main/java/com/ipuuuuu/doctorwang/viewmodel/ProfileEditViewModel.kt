@@ -1,0 +1,84 @@
+package com.ipuuuuu.doctorwang.viewmodel
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
+
+data class ProfileEditUiState(
+    val name: String = "",
+    val age: String = "",
+    val height: String = "",
+    val weight: String = "",
+    val isLoading: Boolean = false,
+    val isLoaded: Boolean = false,
+    val errorMessage: String? = null,
+    val saveSuccess: Boolean = false,
+)
+
+@HiltViewModel
+class ProfileEditViewModel @Inject constructor(
+    private val repository: DoctorWangRepository,
+) : ViewModel() {
+
+    private val _uiState = MutableStateFlow(ProfileEditUiState())
+    val uiState: StateFlow<ProfileEditUiState> = _uiState.asStateFlow()
+
+    fun loadProfile() {
+        viewModelScope.launch {
+            try {
+                val profile = repository.getProfile()
+                _uiState.value = _uiState.value.copy(
+                    name = profile.name,
+                    age = profile.age.toString(),
+                    height = profile.height.toString(),
+                    weight = profile.weight.toString(),
+                    isLoaded = true,
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(errorMessage = "加载资料失败")
+            }
+        }
+    }
+
+    fun updateName(value: String) { _uiState.value = _uiState.value.copy(name = value, errorMessage = null) }
+    fun updateAge(value: String) { _uiState.value = _uiState.value.copy(age = value, errorMessage = null) }
+    fun updateHeight(value: String) { _uiState.value = _uiState.value.copy(height = value, errorMessage = null) }
+    fun updateWeight(value: String) { _uiState.value = _uiState.value.copy(weight = value, errorMessage = null) }
+
+    fun save() {
+        val current = _uiState.value
+        if (current.name.isBlank()) {
+            _uiState.value = current.copy(errorMessage = "姓名不能为空")
+            return
+        }
+        val age = current.age.toIntOrNull()
+        val height = current.height.toIntOrNull()
+        val weight = current.weight.toFloatOrNull()
+        // 上界与后端一致（BackendService：age 1..150、height 30..250、weight 1..500）。
+        if (age == null || age !in 1..150) {
+            _uiState.value = current.copy(errorMessage = "年龄需为 1–150 的整数")
+            return
+        }
+        if (height == null || height !in 30..250) {
+            _uiState.value = current.copy(errorMessage = "身高需为 30–250 cm 的整数")
+            return
+        }
+        if (weight == null || !weight.isFinite() || weight !in 1f..500f) {
+            _uiState.value = current.copy(errorMessage = "体重需为 1–500 kg 的正数")
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.value = current.copy(isLoading = true, errorMessage = null)
+            repository.updateProfile(current.name, age, height, weight)
+                .onSuccess { _uiState.value = _uiState.value.copy(isLoading = false, saveSuccess = true) }
+                .onFailure { error -> _uiState.value = _uiState.value.copy(isLoading = false, errorMessage = error.message ?: "保存失败") }
+        }
+    }
+}

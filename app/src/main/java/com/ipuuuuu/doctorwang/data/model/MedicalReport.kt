@@ -12,4 +12,5 @@ data class MedicalReport(
     val canRetry: Boolean = false,
     val requiresReview: Boolean = false,
     val failureCategory: String? = null,
+    val disclaimer: String? = null,
 )

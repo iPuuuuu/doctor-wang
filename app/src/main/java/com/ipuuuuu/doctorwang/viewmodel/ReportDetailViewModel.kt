@@ -8,6 +8,7 @@ import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
 import com.ipuuuuu.doctorwang.data.repository.SessionExpiredException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -75,11 +76,20 @@ class ReportDetailViewModel @Inject constructor(
     private suspend fun refreshReportStatus() {
         _uiState.value = _uiState.value.copy(isRefreshingStatus = true)
         try {
-            val status = repository.getReportStatus(reportId)
+            var status = repository.getReportStatus(reportId)
             _uiState.value = _uiState.value.copy(
                 reportStatus = status,
                 isRefreshingStatus = false,
             )
+            // PROCESSING/RETRYING 时有限轮询（与 UploadViewModel 轮询策略一致），
+            // 避免用户手动"重试"才能看到最新状态。
+            var attempts = 0
+            while (status.summary in setOf("PROCESSING", "RETRYING") && attempts < MAX_STATUS_POLL_ATTEMPTS) {
+                delay(STATUS_POLL_INTERVAL_MS)
+                status = repository.getReportStatus(reportId)
+                attempts++
+                _uiState.value = _uiState.value.copy(reportStatus = status)
+            }
         } catch (error: Throwable) {
             if (error is SessionExpiredException) {
                 repository.clearSession()
@@ -95,5 +105,10 @@ class ReportDetailViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    private companion object {
+        const val STATUS_POLL_INTERVAL_MS = 2_000L
+        const val MAX_STATUS_POLL_ATTEMPTS = 5
     }
 }

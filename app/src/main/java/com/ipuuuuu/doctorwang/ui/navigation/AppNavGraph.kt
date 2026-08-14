@@ -7,10 +7,13 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.ipuuuuu.doctorwang.ui.screen.auth.LoginScreen
+import com.ipuuuuu.doctorwang.ui.screen.auth.RegisterScreen
 import com.ipuuuuu.doctorwang.ui.screen.chat.ChatScreen
 import com.ipuuuuu.doctorwang.ui.screen.home.HomeScreen
 import com.ipuuuuu.doctorwang.ui.screen.profile.HealthProfileScreen
+import com.ipuuuuu.doctorwang.ui.screen.profile.ProfileEditScreen
 import com.ipuuuuu.doctorwang.ui.screen.report.ReportDetailScreen
+import com.ipuuuuu.doctorwang.ui.screen.report.ReportListScreen
 import com.ipuuuuu.doctorwang.ui.screen.settings.SettingsScreen
 import com.ipuuuuu.doctorwang.ui.screen.splash.SplashScreen
 import com.ipuuuuu.doctorwang.ui.screen.upload.UploadScreen
@@ -52,11 +55,22 @@ fun AppNavGraph(navController: NavHostController) {
                 onOpenSettings = { navController.navigate(Screen.Settings.route) },
             )
         }
+        composable(Screen.Register.route) {
+            RegisterScreen(
+                onRegisterSuccess = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Register.route) { inclusive = true }
+                    }
+                },
+                onBackToLogin = { navController.popBackStack() },
+            )
+        }
         composable(Screen.Home.route) {
             HomeScreen(
                 onChatClick = { navController.navigate(Screen.Chat.route) },
                 onUploadClick = { navController.navigate(Screen.Upload.route) },
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
+                onReportListClick = { navController.navigate(Screen.ReportList.route) },
                 onSettingsClick = { navController.navigate(Screen.Settings.route) },
                 onSessionExpired = navigateToLoginAndClearStack,
             )
@@ -82,7 +96,19 @@ fun AppNavGraph(navController: NavHostController) {
             ReportDetailScreen(onSessionExpired = navigateToLoginAndClearStack)
         }
         composable(Screen.Profile.route) {
-            HealthProfileScreen(onSessionExpired = navigateToLoginAndClearStack)
+            HealthProfileScreen(
+                onEditClick = { navController.navigate(Screen.ProfileEdit.route) },
+                onSessionExpired = navigateToLoginAndClearStack,
+            )
+        }
+        composable(Screen.ProfileEdit.route) {
+            ProfileEditScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Screen.ReportList.route) {
+            ReportListScreen(
+                onBack = { navController.popBackStack() },
+                onReportClick = { reportId -> navController.navigate(Screen.ReportDetail.createRoute(reportId)) },
+            )
         }
         composable(Screen.Settings.route) {
             SettingsScreen(

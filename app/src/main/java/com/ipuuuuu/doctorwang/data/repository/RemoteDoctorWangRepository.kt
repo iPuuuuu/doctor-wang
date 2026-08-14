@@ -8,8 +8,10 @@ import com.ipuuuuu.doctorwang.data.api.ChatRequest
 import com.ipuuuuu.doctorwang.data.api.HealthRecordResponse
 import com.ipuuuuu.doctorwang.data.api.LoginRequest
 import com.ipuuuuu.doctorwang.data.api.MedicalReportResponse
+import com.ipuuuuu.doctorwang.data.api.PasswordChangeRequest
+import com.ipuuuuu.doctorwang.data.api.ProfileUpdateRequest
+import com.ipuuuuu.doctorwang.data.api.RegisterRequest
 import com.ipuuuuu.doctorwang.data.api.ReportStatusResponse
-import com.ipuuuuu.doctorwang.data.api.UploadRequest
 import com.ipuuuuu.doctorwang.data.api.UserProfileResponse
 import com.ipuuuuu.doctorwang.data.model.HealthRecord
 import com.ipuuuuu.doctorwang.data.model.MedicalReport
@@ -24,10 +26,15 @@ import com.ipuuuuu.doctorwang.storage.SessionManager
 import java.io.IOException
 import java.net.ConnectException
 import java.net.SocketTimeoutException
+import java.security.MessageDigest
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.CancellationException
 import retrofit2.HttpException
 import retrofit2.Response
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.MultipartBody
+import okhttp3.RequestBody.Companion.toRequestBody
 
 @Singleton
 class RemoteDoctorWangRepository @Inject constructor(
@@ -46,8 +53,26 @@ class RemoteDoctorWangRepository @Inject constructor(
         }
     }
 
+    override suspend fun register(account: String, password: String, name: String, age: Int, height: Int, weight: Float): Result<Unit> {
+        return networkCall {
+            val response = api().register(
+                RegisterRequest(account = account, password = password, name = name, age = age, height = height, weight = weight),
+            )
+            sessionManager.saveSession(token = response.token, userId = response.userId)
+        }
+    }
+
     override suspend fun logout() {
-        sessionManager.clearSession()
+        try {
+            // Revoke the server-side JTI when reachable. Local cleanup is
+            // unconditional so logout remains safe during network failure.
+            api().logout()
+        } catch (_: Exception) {
+            // Do not retain a bearer token merely because the revoke request
+            // could not complete; the next login establishes a new session.
+        } finally {
+            sessionManager.clearSession()
+        }
     }
 
     override suspend fun clearSession() {
@@ -56,6 +81,16 @@ class RemoteDoctorWangRepository @Inject constructor(
 
     override suspend fun getProfile(): UserProfile {
         return networkCall { api().getProfile().toDomain() }.getOrThrow()
+    }
+
+    override suspend fun updateProfile(name: String?, age: Int?, height: Int?, weight: Float?): Result<UserProfile> {
+        return networkCall {
+            api().updateProfile(ProfileUpdateRequest(name = name, age = age, height = height, weight = weight)).toDomain()
+        }
+    }
+
+    override suspend fun changePassword(oldPassword: String, newPassword: String): Result<Unit> {
+        return networkCall { api().changePassword(PasswordChangeRequest(oldPassword, newPassword)) }
     }
 
     override suspend fun getHealthProfile(): UserProfile {
@@ -101,9 +136,26 @@ class RemoteDoctorWangRepository @Inject constructor(
     }
 
     override suspend fun uploadReport(uri: Uri?): Result<Long> {
-        val fileName = resolveFileName(uri)
+        if (uri == null) return Result.failure(IllegalArgumentException("请选择要上传的报告文件"))
         return networkCall {
-            api().uploadReport(UploadRequest(fileName = fileName)).reportId
+            val fileName = resolveFileName(uri)
+            val contentType = contentResolver.getType(uri)
+                ?.lowercase()
+                ?.takeIf { it in SUPPORTED_MEDIA_TYPES }
+                ?: throw IllegalArgumentException("仅支持 PDF、JPG、PNG 文件")
+            // 先查长度再读入，避免超大文件整体 readBytes() 造成 OOM。
+            val size = contentResolver.openAssetFileDescriptor(uri, "r")?.length
+                ?: throw IllegalArgumentException("无法读取所选文件")
+            if (size > MAX_UPLOAD_BYTES) throw IllegalArgumentException("文件大小不能超过 20MB")
+            val bytes = contentResolver.openInputStream(uri)?.use { it.readBytes() }
+                ?: throw IllegalArgumentException("无法读取所选文件")
+            val body = bytes.toRequestBody(contentType.toMediaTypeOrNull())
+            val part = MultipartBody.Part.createFormData("file", fileName, body)
+            api().uploadReport(
+                // 内容哈希作幂等键：同一文件重试/重复提交命中服务端 dedup，而非每次新 UUID。
+                idempotencyKey = sha256Hex(bytes),
+                file = part,
+            ).reportId
         }
     }
 
@@ -113,6 +165,17 @@ class RemoteDoctorWangRepository @Inject constructor(
 
     override suspend fun getReportStatus(reportId: Long): MedicalReport {
         return networkCall { api().getReportStatus(reportId).toDomain() }.getOrThrow()
+    }
+
+    override suspend fun listReports(page: Int, size: Int): Result<ReportPage> {
+        return networkCall {
+            val response = api().listReports(page, size)
+            ReportPage(items = response.items, totalPages = response.totalPages)
+        }
+    }
+
+    override suspend fun downloadReportFile(reportId: Long): Result<okhttp3.ResponseBody> {
+        return networkCall { api().downloadReportFile(reportId) }
     }
 
     suspend fun getServerUrl(): String = sessionManager.getServerUrl()
@@ -128,7 +191,14 @@ class RemoteDoctorWangRepository @Inject constructor(
     private suspend fun api() = networkProvider.createApi(sessionManager.getServerUrl())
 
     private suspend inline fun <T> networkCall(crossinline block: suspend () -> T): Result<T> {
-        return runCatching { block() }.mapError(::mapNetworkError)
+        return try {
+            Result.success(block())
+        } catch (e: CancellationException) {
+            // 结构化并发：协程取消必须向上传播，不能被包装成业务错误。
+            throw e
+        } catch (e: Throwable) {
+            Result.failure(mapNetworkError(e))
+        }
     }
 
     private fun resolveFileName(uri: Uri?): String {
@@ -145,6 +215,16 @@ class RemoteDoctorWangRepository @Inject constructor(
         return uri.lastPathSegment?.substringAfterLast('/') ?: "检查报告"
     }
 
+    private fun sha256Hex(bytes: ByteArray): String {
+        val digest = MessageDigest.getInstance("SHA-256").digest(bytes)
+        return digest.joinToString("") { "%02x".format(it) }
+    }
+
+    private companion object {
+        const val MAX_UPLOAD_BYTES = 20L * 1024 * 1024
+        val SUPPORTED_MEDIA_TYPES = setOf("application/pdf", "image/jpeg", "image/png")
+    }
+
     private fun mapNetworkError(error: Throwable): Throwable {
         return when (error) {
             is ConnectException, is SocketTimeoutException -> IOException(
@@ -152,10 +232,13 @@ class RemoteDoctorWangRepository @Inject constructor(
                 error,
             )
             is HttpException -> {
+                val serverMessage = extractErrorMessage(error.response())
                 if (error.code() == 401) {
-                    SessionExpiredException(extractErrorMessage(error.response()) ?: "登录状态已失效，请重新登录", error)
+                    SessionExpiredException(serverMessage ?: "登录状态已失效，请重新登录", error)
                 } else {
-                    IOException("服务请求失败（${error.code()}），请稍后重试。", error)
+                    // 服务端业务错误（400/409/413/415/422 等）应透出真实 message，
+                    // 例如改密旧密码错误（PASSWORD_MISMATCH）、账号已存在（ACCOUNT_EXISTS）。
+                    IOException(serverMessage ?: "服务请求失败（${error.code()}），请稍后重试。", error)
                 }
             }
             is IOException -> IOException(
@@ -179,13 +262,6 @@ private fun extractErrorMessage(response: Response<*>?): String? {
         ?.substringAfter("\"message\":\"")
         ?.substringBefore('"')
         ?.takeIf { it.isNotBlank() }
-}
-
-private inline fun <T> Result<T>.mapError(transform: (Throwable) -> Throwable): Result<T> {
-    return fold(
-        onSuccess = { Result.success(it) },
-        onFailure = { Result.failure(transform(it)) },
-    )
 }
 
 private fun UserProfileResponse.toDomain(): UserProfile {
@@ -213,9 +289,10 @@ private fun MedicalReportResponse.toDomain(): MedicalReport {
         title = title,
         date = date,
         type = type,
-        summary = summary,
+        summary = summary ?: "",
         findings = findings,
         suggestions = suggestions,
+        disclaimer = disclaimer,
     )
 }
 
@@ -234,7 +311,9 @@ private fun ReportStatusResponse.toDomain(): MedicalReport {
         },
         phase = phase,
         canRetry = canRetry,
-        requiresReview = requiresReview,
+        // 后端对需复核的 AI 结果 fail closed：job.status="FAILED" + errorCode="REVIEW_REQUIRED"
+        // （PostgreSqlPollingWorker.fail()），从不发出 status="REVIEW_REQUIRED"。
+        requiresReview = requiresReview || failureCategory == "REVIEW_REQUIRED",
         failureCategory = failureCategory,
     )
 }

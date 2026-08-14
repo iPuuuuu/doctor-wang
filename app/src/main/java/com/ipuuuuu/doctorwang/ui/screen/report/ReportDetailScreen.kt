@@ -97,6 +97,20 @@ fun ReportDetailScreen(
             }
         }
         item {
+            // 健康辅助边界声明（AGENTS.md 强制）：后端 disclaimer 优先，缺失时用固定文案兜底。
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
+            ) {
+                Text(
+                    text = report.disclaimer
+                        ?: "本内容仅用于健康辅助，不能替代医生诊断；如有紧急或高风险症状（如胸痛、呼吸困难、意识改变、严重出血等），请立即就医。",
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            }
+        }
+        item {
             SectionCard(title = "AI 解析摘要") {
                 Text(text = report.summary, style = MaterialTheme.typography.bodyLarge)
             }
@@ -117,18 +131,6 @@ fun ReportDetailScreen(
                         BulletItem(text = it)
                     }
                 }
-            }
-        }
-        item {
-            Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.secondaryContainer),
-            ) {
-                Text(
-                    text = "当前页面展示的是后端真实持久化后的报告记录；后续还会继续补 multipart 真文件上传与 OCR/结构化解析。",
-                    modifier = Modifier.padding(16.dp),
-                    style = MaterialTheme.typography.bodyMedium,
-                )
             }
         }
     }

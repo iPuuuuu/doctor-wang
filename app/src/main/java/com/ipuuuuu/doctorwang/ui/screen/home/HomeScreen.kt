@@ -34,6 +34,7 @@ fun HomeScreen(
     onChatClick: () -> Unit,
     onUploadClick: () -> Unit,
     onProfileClick: () -> Unit,
+    onReportListClick: () -> Unit = {},
     onSettingsClick: () -> Unit,
     onSessionExpired: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),

@@ -48,6 +48,12 @@ fun ChatScreen(
     ) {
         Text(text = "AI 问诊", style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.SemiBold)
         Text(text = "你可以直接输入“胃疼”“头疼”等问题进行演示。", style = MaterialTheme.typography.bodySmall)
+        // 健康辅助边界声明（AGENTS.md 强制）：所有面向用户的 AI 输出必须明确边界。
+        Text(
+            text = "内容仅用于健康辅助，不构成诊断、处方或治疗建议；如遇胸痛、呼吸困难、意识改变、严重出血等紧急情况，请立即就医。",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         uiState.conversationSummary?.let { summary ->
             Card(

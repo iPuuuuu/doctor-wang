@@ -57,8 +57,12 @@ class SessionManager @Inject constructor(
     }
 
     suspend fun saveServerUrl(value: String) {
+        val normalized = normalizeServerUrl(value)
+        require(BuildConfig.DEBUG || android.net.Uri.parse(normalized).scheme.equals("https", ignoreCase = true)) {
+            "Release server URL must use HTTPS"
+        }
         context.dataStore.edit { preferences ->
-            preferences[Keys.ServerUrl] = normalizeServerUrl(value)
+            preferences[Keys.ServerUrl] = normalized
         }
     }
 
