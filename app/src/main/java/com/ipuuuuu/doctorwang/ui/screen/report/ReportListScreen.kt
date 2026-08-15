@@ -47,6 +47,12 @@ fun ReportListScreen(
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val listState = rememberLazyListState()
+
+    // 从详情页返回（如删除报告后）时刷新列表
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        viewModel.refresh()
+        onPauseOrDispose { }
+    }
     val shouldLoadMore by remember {
         derivedStateOf {
             // reports 为空时（初始加载失败/空态）不触发 loadMore，避免一次垃圾请求。
