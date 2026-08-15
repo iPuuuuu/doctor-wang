@@ -89,7 +89,13 @@ class ReportProcessingService(
     }
 
     @Transactional
-    fun delete(id: Long) { val report = ownedReport(id); files.findByReport(report)?.let { storage.delete(it.storageKey) }; reports.delete(report) }
+    fun delete(id: Long) {
+        val report = ownedReport(id)
+        // 先删 job 行，与 worker 的锁顺序一致（job → report），避免并发处理中删除触发 PostgreSQL 死锁。
+        jobs.deleteAllByReport(report)
+        files.findByReport(report)?.let { storage.delete(it.storageKey) }
+        reports.delete(report)
+    }
 
     @Transactional(readOnly = true)
     fun listByUser(page: Int, size: Int): ReportListResponse {
