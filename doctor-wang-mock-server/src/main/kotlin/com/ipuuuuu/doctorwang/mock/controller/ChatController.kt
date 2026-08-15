@@ -16,7 +16,7 @@ class ChatController(
     private val chatService: ChatService,
 ) {
     @GetMapping("/chat/history")
-    fun getChatHistory(): List<ChatMessageResponse> = chatService.getHistory()
+    fun getChatHistory(): List<ChatMessageResponse> = chatService.getHistory(conversation = "general")
 
     @PostMapping("/chat")
     fun chat(@RequestBody request: ChatRequest): ChatResponse = chatService.sendMessage(request.message)

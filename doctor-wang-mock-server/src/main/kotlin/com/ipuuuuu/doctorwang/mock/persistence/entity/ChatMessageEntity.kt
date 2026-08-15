@@ -24,6 +24,8 @@ class ChatMessageEntity(
     val role: String,
     @Column(nullable = false, columnDefinition = "text")
     val content: String,
+    @Column(name = "conversation", nullable = false, length = 32)
+    val conversation: String = "general",
     @Column(name = "created_at", nullable = false)
     val createdAt: OffsetDateTime = OffsetDateTime.now(),
 ) {

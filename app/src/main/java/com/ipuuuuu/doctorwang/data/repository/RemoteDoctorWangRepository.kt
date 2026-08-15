@@ -124,6 +124,16 @@ class RemoteDoctorWangRepository @Inject constructor(
         }
     }
 
+    override suspend fun getAnxietyHistoryMessages(): List<Message> {
+        return networkCall {
+            val remoteMessages = api().anxietyHistory().map(ChatMessageResponse::toDomain)
+            messageDao.insertAll(remoteMessages.map(Message::toEntity))
+            remoteMessages
+        }.getOrElse {
+            messageDao.getAll().map(MessageEntity::toDomain)
+        }
+    }
+
     override suspend fun sendAnxietyMessage(content: String, currentMessages: List<Message>): Result<Message> {
         return networkCall {
             val response = api().anxietyChat(ChatRequest(message = content))

@@ -24,9 +24,9 @@ class ChatService(
     private val aiProps: AiServiceProperties,
 ) {
     @Transactional(readOnly = true)
-    fun getHistory(): List<ChatMessageResponse> {
+    fun getHistory(conversation: String = "general"): List<ChatMessageResponse> {
         val user = AuthContext.get()?.user ?: throw SecurityException("未登录或登录已失效")
-        return chatMessageRepository.findAllByUserOrderByCreatedAtAscIdAsc(user).map {
+        return chatMessageRepository.findAllByUserAndConversationOrderByCreatedAtAscIdAsc(user, conversation).map {
             ChatMessageResponse(
                 id = it.id.toString(),
                 content = it.content,
@@ -40,12 +40,12 @@ class ChatService(
     fun sendMessage(message: String): ChatResponse {
         val user = AuthContext.get()?.user ?: throw SecurityException("未登录或登录已失效")
         chatMessageRepository.save(
-            ChatMessageEntity(user = user, role = "user", content = message),
+            ChatMessageEntity(user = user, role = "user", content = message, conversation = "general"),
         )
 
         val reply = if (aiProps.enabled) tryAiReply(message, user) else mockReply(message, user)
         chatMessageRepository.save(
-            ChatMessageEntity(user = user, role = "assistant", content = reply.message),
+            ChatMessageEntity(user = user, role = "assistant", content = reply.message, conversation = "general"),
         )
         return reply
     }
@@ -59,11 +59,11 @@ class ChatService(
     fun anxietyMessage(message: String): ChatResponse {
         val user = AuthContext.get()?.user ?: throw SecurityException("未登录或登录已失效")
         chatMessageRepository.save(
-            ChatMessageEntity(user = user, role = "user", content = message),
+            ChatMessageEntity(user = user, role = "user", content = message, conversation = "anxiety"),
         )
         val reply = if (aiProps.enabled) tryAnxietyReply(message, user) else mockAnxietyReply(message)
         chatMessageRepository.save(
-            ChatMessageEntity(user = user, role = "assistant", content = reply.message),
+            ChatMessageEntity(user = user, role = "assistant", content = reply.message, conversation = "anxiety"),
         )
         return reply
     }

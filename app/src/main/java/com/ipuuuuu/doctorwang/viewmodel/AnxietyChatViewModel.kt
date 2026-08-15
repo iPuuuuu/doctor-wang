@@ -35,7 +35,7 @@ class AnxietyChatViewModel @Inject constructor(
 
     init {
         viewModelScope.launch {
-            runCatching { repository.getHistoryMessages() }
+            runCatching { repository.getAnxietyHistoryMessages() }
                 .onSuccess { messages ->
                     _uiState.value = _uiState.value.copy(messages = messages, isLoading = false)
                 }

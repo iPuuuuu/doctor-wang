@@ -191,6 +191,9 @@ interface DoctorWangApi {
     @POST("/api/chat")
     suspend fun chat(@Body request: ChatRequest): ChatResponse
 
+    @GET("/api/v1/chat/anxiety/history")
+    suspend fun anxietyHistory(): List<ChatMessageResponse>
+
     @POST("/api/v1/chat/anxiety")
     suspend fun anxietyChat(@Body request: ChatRequest): ChatResponse
 
