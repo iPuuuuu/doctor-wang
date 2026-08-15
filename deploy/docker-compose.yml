@@ -120,7 +120,8 @@ services:
     expose:
       - "3310"
     healthcheck:
-      test: ["CMD-SHELL", "test -S /run/clamav/clamd.sock || ss -ltn | grep -q 3310"]
+      # 官方镜像默认仅 TCP 3310 监听（LocalSocket 在 /tmp/clamd.sock，镜像内含 nc）
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 3310"]
       interval: 30s
       timeout: 10s
       retries: 10
