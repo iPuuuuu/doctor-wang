@@ -68,6 +68,9 @@ Send message. When `AI_SERVICE_ENABLED=true` and user has reports, queries AI Se
 }
 ```
 
+### GET /api/v1/chat/anxiety/history
+安心话聊会话记录（与普通问诊历史独立）。
+
 ### POST /api/v1/chat/anxiety
 安心话聊（疑病症/大病焦虑缓解）。结合用户健康档案（年龄/身高/体重/既往史）与最近报告，由 AI 以专门的安全提示词回应，帮助区分"实际检查结果"与"担心的疾病"；无报告时返回上传引导。仍遵循安全门（高风险症状拦截）与医疗边界（建议就医/心理科）。
 
