@@ -115,6 +115,10 @@ services:
     container_name: doctor-wang-clamav
     restart: unless-stopped
     profiles: ["scan"]
+    # 大陆 ECS 无法访问 database.clamav.net（Cloudflare 被墙）：freshclam 更新会挂起并阻塞
+    # clamd 加载病毒库。禁用 freshclam，仅运行 clamd（病毒库已在卷内，~3.6M 签名，新鲜可用）。
+    # 更新签名库：网络可达时 `docker exec doctor-wang-clamav freshclam` 或配置国内镜像后临时启用。
+    entrypoint: ["clamd", "--foreground"]
     volumes:
       - clamav_db:/var/lib/clamav
     expose:
