@@ -8,6 +8,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.ipuuuuu.doctorwang.ui.screen.auth.LoginScreen
 import com.ipuuuuu.doctorwang.ui.screen.auth.RegisterScreen
+import com.ipuuuuu.doctorwang.ui.screen.anxiety.AnxietyChatScreen
 import com.ipuuuuu.doctorwang.ui.screen.chat.ChatScreen
 import com.ipuuuuu.doctorwang.ui.screen.home.HomeScreen
 import com.ipuuuuu.doctorwang.ui.screen.profile.HealthProfileScreen
@@ -68,6 +69,7 @@ fun AppNavGraph(navController: NavHostController) {
         composable(Screen.Home.route) {
             HomeScreen(
                 onChatClick = { navController.navigate(Screen.Chat.route) },
+                onAnxietyChatClick = { navController.navigate(Screen.AnxietyChat.route) },
                 onUploadClick = { navController.navigate(Screen.Upload.route) },
                 onProfileClick = { navController.navigate(Screen.Profile.route) },
                 onReportListClick = { navController.navigate(Screen.ReportList.route) },
@@ -79,6 +81,11 @@ fun AppNavGraph(navController: NavHostController) {
             ChatScreen(
                 onUploadClick = { navController.navigate(Screen.Upload.route) },
                 onSessionExpired = navigateToLoginAndClearStack,
+            )
+        }
+        composable(Screen.AnxietyChat.route) {
+            AnxietyChatScreen(
+                onBack = { navController.popBackStack() },
             )
         }
         composable(Screen.Upload.route) {

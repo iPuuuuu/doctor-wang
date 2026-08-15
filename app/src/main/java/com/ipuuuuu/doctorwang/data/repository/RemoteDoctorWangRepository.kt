@@ -119,20 +119,41 @@ class RemoteDoctorWangRepository @Inject constructor(
                 warnings = response.warnings,
                 citations = response.citations.map { it.toDomain() },
             )
-            messageDao.insertAll(
-                listOf(
-                    Message(
-                        id = "user-${currentMessages.size + 1}",
-                        content = content,
-                        role = "user",
-                        timestamp = assistantMessage.timestamp - 1,
-                        status = MessageStatus.SENT,
-                    ).toEntity(),
-                    assistantMessage.toEntity(),
-                ),
-            )
+            persistChat(content, currentMessages.size, assistantMessage)
             assistantMessage
         }
+    }
+
+    override suspend fun sendAnxietyMessage(content: String, currentMessages: List<Message>): Result<Message> {
+        return networkCall {
+            val response = api().anxietyChat(ChatRequest(message = content))
+            val assistantMessage = Message(
+                id = "anxiety-${currentMessages.size + 1}",
+                content = response.message,
+                role = "assistant",
+                timestamp = System.currentTimeMillis(),
+                status = MessageStatus.SENT,
+                warnings = response.warnings,
+                citations = response.citations.map { it.toDomain() },
+            )
+            persistChat(content, currentMessages.size, assistantMessage)
+            assistantMessage
+        }
+    }
+
+    private suspend fun persistChat(content: String, index: Int, assistantMessage: Message) {
+        messageDao.insertAll(
+            listOf(
+                Message(
+                    id = "user-${index + 1}",
+                    content = content,
+                    role = "user",
+                    timestamp = assistantMessage.timestamp - 1,
+                    status = MessageStatus.SENT,
+                ).toEntity(),
+                assistantMessage.toEntity(),
+            ),
+        )
     }
 
     override suspend fun uploadReport(uri: Uri?): Result<Long> {

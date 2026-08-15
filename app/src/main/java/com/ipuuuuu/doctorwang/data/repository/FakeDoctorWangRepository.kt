@@ -113,6 +113,19 @@ class FakeDoctorWangRepository @Inject constructor(
         )
     }
 
+    override suspend fun sendAnxietyMessage(content: String, currentMessages: List<Message>): Result<Message> {
+        delay(1000)
+        val reply = Message(
+            id = "anxiety-${currentMessages.size + 1}",
+            content = "我听到了你的担心。结合你的健康档案，很多身体不适都有常见且良性的解释；如果这种担心经常出现并影响生活，建议和心理科医生聊聊，也欢迎上传检查报告让我结合真实结果和你分析。",
+            role = "assistant",
+            timestamp = System.currentTimeMillis(),
+            status = MessageStatus.SENT,
+            warnings = listOf("健康辅助不能替代医生诊断；如有紧急症状请立即就医。"),
+        )
+        return Result.success(reply)
+    }
+
     override suspend fun sendMessage(content: String, currentMessages: List<Message>): Result<Message> {
         delay(1000)
         val response = when {

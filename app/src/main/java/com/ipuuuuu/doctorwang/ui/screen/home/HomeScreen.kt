@@ -32,6 +32,7 @@ import com.ipuuuuu.doctorwang.viewmodel.HomeViewModel
 @Composable
 fun HomeScreen(
     onChatClick: () -> Unit,
+    onAnxietyChatClick: () -> Unit,
     onUploadClick: () -> Unit,
     onProfileClick: () -> Unit,
     onReportListClick: () -> Unit = {},
@@ -122,6 +123,13 @@ fun HomeScreen(
                     subtitle = "查看病史与指标",
                     accent = "❤️",
                     onClick = onProfileClick,
+                    modifier = Modifier.weight(1f),
+                )
+                HomeEntryCard(
+                    title = "安心话聊",
+                    subtitle = "缓解对疾病的担忧",
+                    accent = "🌿",
+                    onClick = onAnxietyChatClick,
                     modifier = Modifier.weight(1f),
                 )
                 HomeEntryCard(
