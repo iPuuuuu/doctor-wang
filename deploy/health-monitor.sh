@@ -14,8 +14,9 @@ BASE=https://127.0.0.1
 ALERT_WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
 
 ok=1
-curl -4 -fsS -m 10 "$BASE/healthz" >/dev/null 2>&1 || ok=0
-curl -4 -fsS -m 10 "$BASE/actuator/health" >/dev/null 2>&1 || ok=0
+# -k：自签证书（域名+正式证书前）不校验；-4：nginx 仅监听 IPv4
+curl -4 -kfsS -m 10 "$BASE/healthz" >/dev/null 2>&1 || ok=0
+curl -4 -kfsS -m 10 "$BASE/actuator/health" >/dev/null 2>&1 || ok=0
 
 if [ "$ok" = "1" ]; then
   echo "$(date '+%F %T') OK" >> "$LOG"
