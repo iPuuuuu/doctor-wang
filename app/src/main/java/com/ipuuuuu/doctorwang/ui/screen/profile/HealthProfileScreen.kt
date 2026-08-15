@@ -2,11 +2,16 @@ package com.ipuuuuu.doctorwang.ui.screen.profile
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -14,6 +19,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -66,13 +72,25 @@ fun HealthProfileScreen(
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         item {
-            Text(text = profile.name, style = MaterialTheme.typography.headlineSmall)
-            Text(text = "年龄：${profile.age}")
-            Text(text = "身高：${profile.height} cm")
-            Text(text = "体重：${profile.weight} kg")
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                shape = RoundedCornerShape(24.dp),
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    Text(text = profile.name, style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.onPrimaryContainer)
+                    ProfileStatRow(label = "年龄", value = "${profile.age} 岁")
+                    ProfileStatRow(label = "身高", value = "${profile.height} cm")
+                    ProfileStatRow(label = "体重", value = "${profile.weight} kg")
+                }
+            }
         }
         item {
-            Text(text = "既往疾病", style = MaterialTheme.typography.titleMedium)
+            Text(text = "既往疾病", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
         }
         items(profile.historyDiseases) {
             Text(text = "• $it")
@@ -83,5 +101,16 @@ fun HealthProfileScreen(
         items(profile.records) { record ->
             Text(text = "• ${record.date} ${record.type}")
         }
+    }
+}
+
+@Composable
+private fun ProfileStatRow(label: String, value: String) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        Text(text = label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
     }
 }
