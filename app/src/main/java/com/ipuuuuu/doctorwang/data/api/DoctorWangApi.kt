@@ -218,4 +218,10 @@ interface DoctorWangApi {
     @retrofit2.http.Streaming
     @GET("/api/v1/reports/{reportId}/file")
     suspend fun downloadReportFile(@Path("reportId") reportId: Long): okhttp3.ResponseBody
+
+    @retrofit2.http.POST("/api/v1/reports/{reportId}/retry")
+    suspend fun retryReport(@Path("reportId") reportId: Long): ReportStatusResponse
+
+    @retrofit2.http.DELETE("/api/v1/reports/{reportId}")
+    suspend fun deleteReport(@Path("reportId") reportId: Long)
 }

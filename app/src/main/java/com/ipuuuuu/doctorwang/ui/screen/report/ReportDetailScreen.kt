@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -21,14 +22,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import android.content.Intent
 import com.ipuuuuu.doctorwang.data.model.MedicalReport
 import com.ipuuuuu.doctorwang.viewmodel.ReportDetailViewModel
 
 @Composable
 fun ReportDetailScreen(
     onSessionExpired: () -> Unit,
+    onDeleted: () -> Unit,
     viewModel: ReportDetailViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -37,6 +41,25 @@ fun ReportDetailScreen(
 
     LaunchedEffect(uiState.sessionExpired) {
         if (uiState.sessionExpired) onSessionExpired()
+    }
+
+    LaunchedEffect(uiState.deleted) {
+        if (uiState.deleted) onDeleted()
+    }
+
+    // 下载完成后用系统"打开方式"展示原报告文件
+    val context = androidx.compose.ui.platform.LocalContext.current
+    LaunchedEffect(uiState.downloadedFile) {
+        val file = uiState.downloadedFile ?: return@LaunchedEffect
+        runCatching {
+            val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/pdf")
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(Intent.createChooser(intent, "打开报告文件"))
+        }
+        viewModel.clearDownloadedFile()
     }
 
     if (uiState.isLoading) {
@@ -94,6 +117,39 @@ fun ReportDetailScreen(
         item {
             SectionCard(title = "处理状态") {
                 ReportStatusBlock(status = status ?: report, isRefreshing = uiState.isRefreshingStatus)
+            }
+        }
+        item {
+            Button(
+                onClick = viewModel::downloadFile,
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isDownloading,
+            ) {
+                Text(if (uiState.isDownloading) "下载中..." else "查看原报告文件")
+            }
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(10.dp),
+            ) {
+                if (status?.canRetry == true) {
+                    Button(
+                        onClick = viewModel::retry,
+                        modifier = Modifier.weight(1f),
+                        enabled = !uiState.isRetrying,
+                    ) {
+                        Text(if (uiState.isRetrying) "重试中..." else "重新解析")
+                    }
+                }
+                Button(
+                    onClick = viewModel::delete,
+                    modifier = Modifier.weight(1f),
+                    enabled = !uiState.isDeleting,
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                ) {
+                    Text(if (uiState.isDeleting) "删除中..." else "删除报告", color = MaterialTheme.colorScheme.onErrorContainer)
+                }
             }
         }
         item {

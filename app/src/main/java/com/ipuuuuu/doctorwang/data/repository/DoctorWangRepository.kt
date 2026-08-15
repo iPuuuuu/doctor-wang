@@ -30,4 +30,6 @@ interface DoctorWangRepository {
     suspend fun getReportStatus(reportId: Long): MedicalReport
     suspend fun listReports(page: Int = 0, size: Int = 20): Result<ReportPage>
     suspend fun downloadReportFile(reportId: Long): Result<ResponseBody>
+    suspend fun retryReport(reportId: Long): Result<MedicalReport>
+    suspend fun deleteReport(reportId: Long): Result<Unit>
 }

@@ -195,6 +195,14 @@ class RemoteDoctorWangRepository @Inject constructor(
         }
     }
 
+    override suspend fun retryReport(reportId: Long): Result<MedicalReport> {
+        return networkCall { api().retryReport(reportId).toDomain() }
+    }
+
+    override suspend fun deleteReport(reportId: Long): Result<Unit> {
+        return networkCall { api().deleteReport(reportId); Unit }
+    }
+
     override suspend fun downloadReportFile(reportId: Long): Result<okhttp3.ResponseBody> {
         return networkCall { api().downloadReportFile(reportId) }
     }

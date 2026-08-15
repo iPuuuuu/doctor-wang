@@ -100,7 +100,10 @@ fun AppNavGraph(navController: NavHostController) {
             route = Screen.ReportDetail.route,
             arguments = listOf(navArgument("reportId") { type = NavType.LongType }),
         ) {
-            ReportDetailScreen(onSessionExpired = navigateToLoginAndClearStack)
+            ReportDetailScreen(
+                onSessionExpired = navigateToLoginAndClearStack,
+                onDeleted = { navController.popBackStack() },
+            )
         }
         composable(Screen.Profile.route) {
             HealthProfileScreen(

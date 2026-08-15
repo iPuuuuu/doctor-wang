@@ -19,6 +19,11 @@ data class ReportDetailUiState(
     val reportStatus: MedicalReport? = null,
     val isLoading: Boolean = true,
     val isRefreshingStatus: Boolean = false,
+    val isDeleting: Boolean = false,
+    val isRetrying: Boolean = false,
+    val isDownloading: Boolean = false,
+    val downloadedFile: java.io.File? = null,
+    val deleted: Boolean = false,
     val errorMessage: String? = null,
     val sessionExpired: Boolean = false,
 )
@@ -27,6 +32,7 @@ data class ReportDetailUiState(
 class ReportDetailViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val repository: DoctorWangRepository,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
 ) : ViewModel() {
 
     private val reportId: Long = checkNotNull(savedStateHandle["reportId"])
@@ -104,6 +110,72 @@ class ReportDetailViewModel @Inject constructor(
                     errorMessage = error.message ?: "报告状态刷新失败",
                 )
             }
+        }
+    }
+
+    fun downloadFile() {
+        if (_uiState.value.isDownloading) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isDownloading = true, errorMessage = null)
+            repository.downloadReportFile(reportId)
+                .onSuccess { body ->
+                    runCatching {
+                        val dir = java.io.File(context.cacheDir, "report_files").apply { mkdirs() }
+                        val file = java.io.File(dir, "report-$reportId.pdf")
+                        body.byteStream().use { input ->
+                            file.outputStream().use { output -> input.copyTo(output) }
+                        }
+                        file
+                    }.onSuccess { file ->
+                        _uiState.value = _uiState.value.copy(isDownloading = false, downloadedFile = file)
+                    }.onFailure {
+                        _uiState.value = _uiState.value.copy(isDownloading = false, errorMessage = "下载失败，请稍后再试")
+                    }
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isDownloading = false,
+                        errorMessage = error.message ?: "下载失败，请稍后再试",
+                    )
+                }
+        }
+    }
+
+    fun clearDownloadedFile() {
+        _uiState.value = _uiState.value.copy(downloadedFile = null)
+    }
+
+    fun retry() {
+        if (_uiState.value.isRetrying) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRetrying = true, errorMessage = null)
+            repository.retryReport(reportId)
+                .onSuccess { status ->
+                    _uiState.value = _uiState.value.copy(isRetrying = false, reportStatus = status)
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isRetrying = false,
+                        errorMessage = error.message ?: "重试失败，请稍后再试",
+                    )
+                }
+        }
+    }
+
+    fun delete() {
+        if (_uiState.value.isDeleting) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isDeleting = true, errorMessage = null)
+            repository.deleteReport(reportId)
+                .onSuccess {
+                    _uiState.value = _uiState.value.copy(isDeleting = false, deleted = true)
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isDeleting = false,
+                        errorMessage = error.message ?: "删除失败，请稍后再试",
+                    )
+                }
         }
     }
 
