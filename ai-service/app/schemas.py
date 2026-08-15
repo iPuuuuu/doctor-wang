@@ -41,6 +41,9 @@ class RagRequest(BaseModel):
     namespaceHints: list[str] = Field(min_length=1)
     topK: int = Field(default=5, ge=1, le=20)
     traceId: str
+    # 安心话聊模式（疑病症/大病焦虑缓解）：后端传入用户健康档案摘要，提示词与安全边界不同
+    mode: str = Field(default="general", pattern="^(general|anxiety)$")
+    healthProfile: str = Field(default="", max_length=2000)
 
 
 class RagResponse(BaseModel):

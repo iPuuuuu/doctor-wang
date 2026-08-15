@@ -63,6 +63,20 @@ class DashScopeOcrProvider:
 class OpenAICompatibleGenerationProvider:
     def __init__(self, endpoint: str, api_key: str | None, model: str, timeout: float = 15): self.endpoint, self.api_key, self.model, self.timeout = endpoint, api_key, model, timeout
 
-    def generate(self, question: str, context: str) -> str:
-        body = _post_json(self.endpoint, {"model": self.model, "temperature": 0, "messages": [{"role": "system", "content": "只基于提供的来源回答；不能诊断。"}, {"role": "user", "content": f"来源:\n{context}\n问题:{question}"}]}, self.api_key, self.timeout)
+    DEFAULT_SYSTEM_PROMPT = "只基于提供的来源回答；不能诊断。"
+
+    def generate(self, question: str, context: str, system_prompt: str | None = None) -> str:
+        body = _post_json(
+            self.endpoint,
+            {
+                "model": self.model,
+                "temperature": 0,
+                "messages": [
+                    {"role": "system", "content": system_prompt or self.DEFAULT_SYSTEM_PROMPT},
+                    {"role": "user", "content": f"来源:\n{context}\n问题:{question}"},
+                ],
+            },
+            self.api_key,
+            self.timeout,
+        )
         return body["choices"][0]["message"]["content"]

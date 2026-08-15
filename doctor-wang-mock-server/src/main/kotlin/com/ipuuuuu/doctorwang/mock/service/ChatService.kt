@@ -8,6 +8,7 @@ import com.ipuuuuu.doctorwang.mock.model.ChatMessageResponse
 import com.ipuuuuu.doctorwang.mock.model.ChatResponse
 import com.ipuuuuu.doctorwang.mock.persistence.entity.ChatMessageEntity
 import com.ipuuuuu.doctorwang.mock.persistence.repository.ChatMessageRepository
+import com.ipuuuuu.doctorwang.mock.persistence.repository.HealthProfileDiseaseRepository
 import com.ipuuuuu.doctorwang.mock.persistence.repository.MedicalReportRepository
 import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Service
@@ -18,6 +19,7 @@ import java.util.UUID
 class ChatService(
     private val chatMessageRepository: ChatMessageRepository,
     private val medicalReportRepository: MedicalReportRepository,
+    private val healthProfileDiseaseRepository: HealthProfileDiseaseRepository,
     private val aiClient: AiReportClient,
     private val aiProps: AiServiceProperties,
 ) {
@@ -46,6 +48,84 @@ class ChatService(
             ChatMessageEntity(user = user, role = "assistant", content = reply.message),
         )
         return reply
+    }
+
+    /**
+     * 安心话聊（疑病症/大病焦虑缓解）：结合用户真实健康档案与最近报告，
+     * 由 AI 以专门的安全提示词回应，帮助降低对重大疾病的过度担忧。
+     * 仍需报告作为检索依据；无报告时给出温和引导而非凭空安慰。
+     */
+    @Transactional
+    fun anxietyMessage(message: String): ChatResponse {
+        val user = AuthContext.get()?.user ?: throw SecurityException("未登录或登录已失效")
+        chatMessageRepository.save(
+            ChatMessageEntity(user = user, role = "user", content = message),
+        )
+        val reply = if (aiProps.enabled) tryAnxietyReply(message, user) else mockAnxietyReply(message)
+        chatMessageRepository.save(
+            ChatMessageEntity(user = user, role = "assistant", content = reply.message),
+        )
+        return reply
+    }
+
+    private fun tryAnxietyReply(message: String, user: com.ipuuuuu.doctorwang.mock.persistence.entity.AppUserEntity): ChatResponse {
+        val latestReport = try { medicalReportRepository.findAllByUserOrderByCreatedAtDescIdDesc(user).firstOrNull() } catch (_: Exception) { null }
+        if (latestReport == null) {
+            return ChatResponse(
+                message = "我理解你很担心。要帮你安心地分析，我需要结合你的实际检查报告——请先上传最近一次的报告（或让医生录入检查结果），我就能从你的真实结果出发和你聊，而不是凭空猜测。",
+                warnings = listOf("健康辅助不能替代就医；如有紧急症状请立即就医。"),
+                citations = emptyList(),
+                traceId = TraceIdContext.get(),
+            )
+        }
+        val diseases = try { healthProfileDiseaseRepository.findAllByUserOrderByIdAsc(user).map { it.diseaseName } } catch (_: Exception) { emptyList() }
+        val healthProfile = buildString {
+            append("年龄 ${user.age} 岁，身高 ${user.height}cm，体重 ${user.weight}kg")
+            if (diseases.isNotEmpty()) append("，既往史：${diseases.joinToString("、")}")
+        }
+        return try {
+            val request = AiRagRequest(
+                requestId = UUID.randomUUID().toString(),
+                userId = user.id,
+                reportId = latestReport.id,
+                question = message,
+                namespaceHints = listOf("report:${user.id}:${latestReport.id}"),
+                mode = "anxiety",
+                healthProfile = healthProfile,
+                traceId = TraceIdContext.get(),
+            )
+            val aiResponse = aiClient.query(request)
+            val validated = AiSafetyGate.validate(aiResponse, latestReport.id)
+            ChatResponse(
+                message = validated.summary,
+                warnings = validated.warnings,
+                citations = validated.citations.map { c ->
+                    com.ipuuuuu.doctorwang.mock.model.ChatCitationResponse(
+                        sourceType = c.sourceType,
+                        sourceId = c.sourceId,
+                        pageNo = c.pageNo,
+                        excerpt = c.excerpt,
+                        confidence = c.confidence,
+                    )
+                },
+                traceId = validated.traceId,
+            )
+        } catch (_: AiServiceUnavailable) {
+            logger.warn("AI service unavailable, falling back to anxiety mock reply")
+            mockAnxietyReply(message)
+        } catch (_: Exception) {
+            logger.warn("AI anxiety query failed, falling back to anxiety mock reply")
+            mockAnxietyReply(message)
+        }
+    }
+
+    private fun mockAnxietyReply(message: String): ChatResponse {
+        return ChatResponse(
+            message = "我听到了你的担心。在 AI 助手暂时不可用时，请记住：很多让身体不适的原因都是常见且良性的（睡眠、压力、饮食、情绪都可能引起）。请先对照自己的真实检查结果，如果症状持续或加重，及时就医才是最安心的做法；如果这种担心经常出现且影响生活，也可以和心理科医生聊聊。",
+            warnings = listOf("健康辅助不能替代医生诊断；如有紧急症状请立即就医（120）。"),
+            citations = emptyList(),
+            traceId = TraceIdContext.get(),
+        )
     }
 
     private fun tryAiReply(message: String, user: com.ipuuuuu.doctorwang.mock.persistence.entity.AppUserEntity): ChatResponse {

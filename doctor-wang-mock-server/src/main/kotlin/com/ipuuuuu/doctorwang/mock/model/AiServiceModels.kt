@@ -13,7 +13,8 @@ data class AiIngestionStatus(val jobId: String, val status: String, val reportId
                              val requiresReview: Boolean = false, val errorCode: String? = null,
                              val resultVersion: String? = null)
 data class AiRagRequest(val requestId: String, val userId: Long, val reportId: Long, val question: String,
-                        val namespaceHints: List<String>, val topK: Int = 5, val traceId: String)
+                        val namespaceHints: List<String>, val topK: Int = 5, val traceId: String,
+                        val mode: String = "general", val healthProfile: String = "")
 data class AiCitation(val sourceType: String, val sourceId: String, val chunkId: String, val pageNo: Int?, val excerpt: String, val confidence: Double, val documentVersion: String)
 data class AiRagResponse(val requestId: String, val status: String, val riskLevel: String, val summary: String,
                          val citations: List<AiCitation> = emptyList(), val warnings: List<String> = emptyList(),

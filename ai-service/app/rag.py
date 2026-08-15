@@ -2,6 +2,22 @@ from .embeddings import EmbeddingProvider
 from .schemas import Citation, RagResponse
 from .safety import risk_triage
 
+# 安心话聊（疑病症/大病焦虑）专用系统提示词：
+# 结合用户真实健康档案与检查报告，缓解对重大疾病的过度担忧，
+# 同时严守健康辅助边界，不否认真实症状、不替代就医。
+ANXIETY_SYSTEM_PROMPT = (
+    "你是 Doctor-Wang 的健康安心助手，帮助用户缓解对重大疾病的过度担忧（疑病症/健康焦虑）。\n"
+    "回答规则：\n"
+    "1. 先共情：承认担心是正常的，不指责、不敷衍。\n"
+    "2. 严格基于用户真实的健康档案与检查报告说话：明确区分\"实际检查结果支持什么\"与\"用户担心的疾病\"，"
+    "如果资料中没有任何支持该担忧的证据，可以温和说明这一点（例如：从现有检查看，没有支持 X 的依据），但绝不能断言\"你没病\"。\n"
+    "3. 只引用提供的资料，不编造检查结果、概率或药物建议。\n"
+    "4. 对常见良性解释可作有依据的说明（如紧张性头痛很常见，不等于脑肿瘤），但保持克制。\n"
+    "5. 明确边界：这是健康辅助，不是诊断；若症状真实存在、持续或加重，应就医检查；"
+    "若焦虑明显影响生活，建议咨询心理科/精神科。\n"
+    "6. 语气温和、简短、可读，使用中文。"
+)
+
 
 def query_rag(request, store, embedder: EmbeddingProvider, generator=None) -> RagResponse:
     namespace = f"report:{request.userId}:{request.reportId}"
@@ -27,7 +43,12 @@ def query_rag(request, store, embedder: EmbeddingProvider, generator=None) -> Ra
     summary = "以下内容是基于报告片段的健康辅助解释，不能替代医生诊断。"
     if generator:
         try:
-            summary = generator.generate(request.question, "\n".join(c.excerpt for c in citations))
+            context = "\n".join(c.excerpt for c in citations)
+            if request.mode == "anxiety":
+                context = f"用户健康档案:\n{request.healthProfile or '（未提供）'}\n\n报告片段:\n{context}"
+                summary = generator.generate(request.question, context, system_prompt=ANXIETY_SYSTEM_PROMPT)
+            else:
+                summary = generator.generate(request.question, context)
         except Exception:
             summary = "模型服务暂时不可用；请根据报告原文向医生确认。"
     return RagResponse(requestId=request.requestId, status="OK", riskLevel=risk,
