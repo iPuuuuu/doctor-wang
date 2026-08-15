@@ -9,12 +9,13 @@
 set -uo pipefail
 
 LOG=/var/log/doctor-wang-health.log
-BASE=https://localhost
+# 用 IPv4 显式地址：localhost 可能解析到 ::1，而 nginx 只监听 IPv4，会导致误报 DOWN
+BASE=https://127.0.0.1
 ALERT_WEBHOOK_URL="${ALERT_WEBHOOK_URL:-}"
 
 ok=1
-curl -fsS -m 10 "$BASE/healthz" >/dev/null 2>&1 || ok=0
-curl -fsS -m 10 "$BASE/actuator/health" >/dev/null 2>&1 || ok=0
+curl -4 -fsS -m 10 "$BASE/healthz" >/dev/null 2>&1 || ok=0
+curl -4 -fsS -m 10 "$BASE/actuator/health" >/dev/null 2>&1 || ok=0
 
 if [ "$ok" = "1" ]; then
   echo "$(date '+%F %T') OK" >> "$LOG"
