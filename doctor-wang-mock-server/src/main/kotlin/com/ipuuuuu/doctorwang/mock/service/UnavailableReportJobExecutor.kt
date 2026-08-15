@@ -3,8 +3,10 @@ package com.ipuuuuu.doctorwang.mock.service
 import com.ipuuuuu.doctorwang.mock.persistence.entity.ReportProcessingJobEntity
 import com.ipuuuuu.doctorwang.mock.config.AiServiceProperties
 import com.ipuuuuu.doctorwang.mock.model.AiIngestionRequest
+import com.ipuuuuu.doctorwang.mock.model.AiRagRequest
 import com.ipuuuuu.doctorwang.mock.persistence.repository.MedicalReportFileRepository
 import org.springframework.stereotype.Component
+import java.util.UUID
 
 @Component
 class UnavailableReportJobExecutor(private val client: AiReportClient, private val files: MedicalReportFileRepository, private val storage: FileStorageService, private val props: AiServiceProperties) : ReportJobExecutor {
@@ -17,9 +19,35 @@ class UnavailableReportJobExecutor(private val client: AiReportClient, private v
             job.aiJobId = accepted.jobId
             val state = client.status(accepted.jobId)
             val completed = state.status == "COMPLETED"
-            ReportJobResult(job.id.toString(), job.report.id, job.attemptCount, job.traceId, props.sourceVersion, status = if (completed) "COMPLETED" else "FAILED", errorCode = if (completed) null else (state.errorCode ?: state.status), reviewRequired = state.requiresReview, resultDigest = job.payloadHash)
+            if (!completed) {
+                return ReportJobResult(job.id.toString(), job.report.id, job.attemptCount, job.traceId, props.sourceVersion, status = "FAILED", errorCode = state.errorCode ?: state.status, reviewRequired = state.requiresReview, resultDigest = job.payloadHash)
+            }
+            // 向量化完成 → 生成循证解读（摘要/重点发现/建议）。fail-closed：AI 不可用、
+            // 无证据或格式异常时回退到诚实兜底文案，绝不编造检查结果。
+            val interpretation = interpret(job, namespace)
+            ReportJobResult(job.id.toString(), job.report.id, job.attemptCount, job.traceId, props.sourceVersion,
+                status = "COMPLETED", errorCode = null, reviewRequired = false, resultDigest = job.payloadHash,
+                summary = interpretation.summary, findings = interpretation.findings, suggestions = interpretation.suggestions)
         } catch (_: AiServiceUnavailable) {
             ReportJobResult(job.id.toString(), job.report.id, job.attemptCount, job.traceId, props.sourceVersion, status = "FAILED", errorCode = "AI_SERVICE_UNAVAILABLE")
         }
+    }
+
+    /** 一次循证 RAG 查询生成解读；AI 不可用/无证据/校验不过/非 OK → 诚实兜底。 */
+    private fun interpret(job: ReportProcessingJobEntity, namespace: String): ReportInterpretation.Interpretation = try {
+        val request = AiRagRequest(
+            requestId = UUID.randomUUID().toString(),
+            userId = job.userId ?: job.report.user.id,
+            reportId = job.report.id,
+            question = ReportInterpretation.PROMPT,
+            namespaceHints = listOf(namespace),
+            topK = 5,
+            traceId = job.traceId,
+        )
+        val response = AiSafetyGate.validate(client.query(request), job.report.id)
+        if (response.status != "OK") ReportInterpretation.Interpretation.fallback()
+        else ReportInterpretation.parse(response.summary)
+    } catch (_: Exception) {
+        ReportInterpretation.Interpretation.fallback()
     }
 }

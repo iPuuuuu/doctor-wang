@@ -27,7 +27,7 @@ class MedicalReportEntity(
     @Column(name = "report_type", nullable = false)
     val reportType: String,
     @Column(nullable = false, columnDefinition = "text")
-    val summary: String,
+    var summary: String,
     @Column(nullable = false, length = 32)
     var status: String,
     @Column(name = "created_at", nullable = false)

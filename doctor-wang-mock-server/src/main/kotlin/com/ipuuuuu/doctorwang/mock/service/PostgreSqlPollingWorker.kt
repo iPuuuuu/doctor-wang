@@ -1,7 +1,11 @@
 package com.ipuuuuu.doctorwang.mock.service
 
 import com.ipuuuuu.doctorwang.mock.persistence.entity.ReportProcessingJobEntity
+import com.ipuuuuu.doctorwang.mock.persistence.entity.MedicalReportFindingEntity
+import com.ipuuuuu.doctorwang.mock.persistence.entity.MedicalReportSuggestionEntity
 import com.ipuuuuu.doctorwang.mock.persistence.repository.ReportProcessingJobRepository
+import com.ipuuuuu.doctorwang.mock.persistence.repository.MedicalReportFindingRepository
+import com.ipuuuuu.doctorwang.mock.persistence.repository.MedicalReportSuggestionRepository
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.data.domain.PageRequest
 import org.springframework.scheduling.annotation.Scheduled
@@ -14,6 +18,8 @@ import java.util.UUID
 class PostgreSqlPollingWorker(
     private val jobs: ReportProcessingJobRepository,
     private val executor: ReportJobExecutor,
+    private val findingsRepo: MedicalReportFindingRepository,
+    private val suggestionsRepo: MedicalReportSuggestionRepository,
     private val stateMachine: ReportJobStateMachine = ReportJobStateMachine(),
     @Value("\${app.report-processing.worker-enabled:false}") private val enabled: Boolean,
     @Value("\${app.report-processing.max-attempts:3}") private val maxAttempts: Int,
@@ -59,6 +65,11 @@ class PostgreSqlPollingWorker(
             job.leaseExpiresAt = null
             job.updatedAt = OffsetDateTime.now()
             job.report.status = "COMPLETED"
+            // REPORT-INTERPRETATION-001：回写循证解读（摘要/重点发现/建议），供报告详情页展示。
+            // 未生成（AI 不可用/无证据/格式异常）时保持兜底文案，不编造。
+            result.summary?.takeIf { it.isNotBlank() }?.let { job.report.summary = it }
+            result.findings.forEach { f -> findingsRepo.save(MedicalReportFindingEntity(report = job.report, findingText = f)) }
+            result.suggestions.forEach { s -> suggestionsRepo.save(MedicalReportSuggestionEntity(report = job.report, suggestionText = s)) }
             jobs.save(job)
         } else {
             // A review-required or incomplete AI result must fail closed and never

@@ -196,20 +196,24 @@ fun ReportDetailScreen(
                 Text(text = report.summary, style = MaterialTheme.typography.bodyLarge)
             }
         }
-        item {
-            SectionCard(title = "重点发现") {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    report.findings.forEach {
-                        BulletItem(text = it)
+        if (report.findings.isNotEmpty()) {
+            item {
+                SectionCard(title = "重点发现") {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        report.findings.forEach {
+                            BulletItem(text = it)
+                        }
                     }
                 }
             }
         }
-        item {
-            SectionCard(title = "建议与后续动作") {
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    report.suggestions.forEach {
-                        BulletItem(text = it)
+        if (report.suggestions.isNotEmpty()) {
+            item {
+                SectionCard(title = "建议与后续动作") {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        report.suggestions.forEach {
+                            BulletItem(text = it)
+                        }
                     }
                 }
             }
