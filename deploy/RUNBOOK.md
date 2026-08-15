@@ -136,6 +136,26 @@ curl -s -X POST https://your-domain.example/api/v1/chat/anxiety \
 
 > 加固内容（`setup-server.sh`）：2G swap、`tcp_max_syn_backlog`/`somaxconn` 缓解半连接堆积、Docker ulimit、容器内存限制（JVM `-Xmx384m`、PG `shared_buffers=64MB`）。
 
+### 6.1.1 国内服务器重建 ai-service 镜像（Docker Hub 不通时的离线技巧）
+
+大陆 ECS 直连 `registry-1.docker.io` 会超时（`failed to resolve source metadata`）。若基础镜像 `python:3.11-slim` 不在本地（buildkit 构建后不会保留），用**已构建的旧镜像作为基础层**叠加新代码即可完全离线重建：
+
+```bash
+cd /opt/doctor-wang/ai-service
+cat > ai-update.Dockerfile << 'EOF'
+FROM deploy-ai-service:latest
+WORKDIR /app
+COPY pyproject.toml README.md ./
+COPY app ./app
+RUN pip install --no-cache-dir --index-url https://mirrors.aliyun.com/pypi/simple/ .
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+EOF
+docker build -t deploy-ai-service:latest -f ai-update.Dockerfile .
+```
+
+（pip 依赖已在旧镜像内，仅重装本包；阿里云 pip 镜像可直连。）后端始终用本地 jar 最小镜像，无此问题。健康巡检 cron 已装（`/opt/doctor-wang/deploy/health-monitor.sh`，每 5 分钟）。
+
 ## 7. 部署后待办（DEPLOY-001b，见 ADR-0009）
 
 - 证书自动签发/轮换接入（当前 cron 手动续期）
