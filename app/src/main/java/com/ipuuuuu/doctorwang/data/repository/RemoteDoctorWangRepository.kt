@@ -166,7 +166,7 @@ class RemoteDoctorWangRepository @Inject constructor(
         )
     }
 
-    override suspend fun uploadReport(uri: Uri?): Result<Long> {
+    override suspend fun uploadReport(uri: Uri?, reportType: String?, reportDate: String?): Result<Long> {
         if (uri == null) return Result.failure(IllegalArgumentException("请选择要上传的报告文件"))
         return networkCall {
             val fileName = resolveFileName(uri)
@@ -186,6 +186,8 @@ class RemoteDoctorWangRepository @Inject constructor(
                 // 内容哈希作幂等键：同一文件重试/重复提交命中服务端 dedup，而非每次新 UUID。
                 idempotencyKey = sha256Hex(bytes),
                 file = part,
+                reportDate = reportDate?.trim()?.takeIf { it.isNotEmpty() }?.toRequestBody("text/plain".toMediaTypeOrNull()),
+                reportType = reportType?.trim()?.takeIf { it.isNotEmpty() }?.toRequestBody("text/plain".toMediaTypeOrNull()),
             ).reportId
         }
     }

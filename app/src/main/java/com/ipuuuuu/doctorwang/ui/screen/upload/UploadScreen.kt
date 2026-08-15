@@ -12,6 +12,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -54,6 +55,24 @@ fun UploadScreen(
             color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(text = "已选择：${uiState.selectedUri?.lastPathSegment?.substringAfterLast('/') ?: "未选择文件"}",
             style = MaterialTheme.typography.bodyMedium)
+        OutlinedTextField(
+            value = uiState.reportType,
+            onValueChange = viewModel::onReportTypeChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("检查类型（选填）") },
+            placeholder = { Text("如：腹部超声 / 血常规 / 胸部X线") },
+            singleLine = true,
+            enabled = !uiState.isUploading && !uiState.isPollingStatus,
+        )
+        OutlinedTextField(
+            value = uiState.reportDate,
+            onValueChange = viewModel::onReportDateChange,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("检查日期（选填）") },
+            placeholder = { Text("如：2026-06-17") },
+            singleLine = true,
+            enabled = !uiState.isUploading && !uiState.isPollingStatus,
+        )
         uiState.errorMessage?.let {
             Text(text = it, color = MaterialTheme.colorScheme.error)
         }

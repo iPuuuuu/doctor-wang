@@ -57,7 +57,7 @@ class ReportProcessingService(
                 return objectMapper.readValue(it.responseSnapshot, ReportUploadResponse::class.java)
             }
         }
-        val report = reports.save(MedicalReportEntity(user = user, title = file.originalFilename ?: "检查报告", reportDate = reportDate ?: "", reportType = reportType ?: "检查报告", summary = "报告正在处理，结果需经医生确认。", status = "PROCESSING"))
+        val report = reports.save(MedicalReportEntity(user = user, title = if (!reportType.isNullOrBlank()) "${reportType.trim()}报告" else (file.originalFilename ?: "检查报告"), reportDate = reportDate ?: "", reportType = reportType ?: "检查报告", summary = "报告正在处理，结果需经医生确认。", status = "PROCESSING"))
         val stored = try { storage.store(user.userId, report.id, file) } catch (e: Exception) { throw ApiException("STORAGE_FAILED", "文件保存失败") }
         files.save(MedicalReportFileEntity(report = report, storageKey = stored.storageKey, originalFileName = file.originalFilename ?: "upload", mimeType = file.contentType ?: "application/octet-stream", fileSize = file.size, sha256 = stored.sha256))
         val job = jobs.save(ReportProcessingJobEntity(id = UUID.randomUUID(), report = report, userId = user.id, status = "STORED", stage = "STORED", phase = "STORED", payloadHash = digest, traceId = TraceIdContext.get(), nextAttemptAt = OffsetDateTime.now()))

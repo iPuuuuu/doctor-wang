@@ -16,6 +16,8 @@ import kotlinx.coroutines.launch
 
 data class UploadUiState(
     val selectedUri: Uri? = null,
+    val reportType: String = "",
+    val reportDate: String = "",
     val isUploading: Boolean = false,
     val uploadSuccess: Boolean = false,
     val uploadedReportId: Long? = null,
@@ -45,11 +47,21 @@ class UploadViewModel @Inject constructor(
         )
     }
 
+    fun onReportTypeChange(value: String) {
+        _uiState.value = _uiState.value.copy(reportType = value)
+    }
+
+    fun onReportDateChange(value: String) {
+        _uiState.value = _uiState.value.copy(reportDate = value)
+    }
+
     fun upload() {
         val uri = _uiState.value.selectedUri ?: run {
             _uiState.value = _uiState.value.copy(errorMessage = "请先选择文件")
             return
         }
+        val reportType = _uiState.value.reportType.trim().takeIf { it.isNotEmpty() }
+        val reportDate = _uiState.value.reportDate.trim().takeIf { it.isNotEmpty() }
 
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(
@@ -61,7 +73,7 @@ class UploadViewModel @Inject constructor(
                 errorMessage = null,
                 sessionExpired = false,
             )
-            repository.uploadReport(uri)
+            repository.uploadReport(uri, reportType, reportDate)
                 .onSuccess { reportId ->
                     _uiState.value = _uiState.value.copy(
                         isUploading = false,

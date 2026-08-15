@@ -26,7 +26,7 @@ interface DoctorWangRepository {
     suspend fun sendMessage(content: String, currentMessages: List<Message>): Result<Message>
     suspend fun getAnxietyHistoryMessages(): List<Message>
     suspend fun sendAnxietyMessage(content: String, currentMessages: List<Message>): Result<Message>
-    suspend fun uploadReport(uri: Uri?): Result<Long>
+    suspend fun uploadReport(uri: Uri?, reportType: String?, reportDate: String?): Result<Long>
     suspend fun getReport(reportId: Long): MedicalReport
     suspend fun getReportStatus(reportId: Long): MedicalReport
     suspend fun listReports(page: Int = 0, size: Int = 20): Result<ReportPage>
