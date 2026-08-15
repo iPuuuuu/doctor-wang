@@ -1,5 +1,6 @@
 package com.ipuuuuu.doctorwang.ui.screen.report
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
@@ -138,9 +140,7 @@ private fun ReportCard(report: ReportListItem, onClick: () -> Unit) {
                 Text(text = report.title, style = MaterialTheme.typography.titleMedium,
                     maxLines = 1, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f))
-                Text(text = report.status, style = MaterialTheme.typography.labelSmall,
-                    color = if (report.status == "COMPLETED") MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.error)
+                StatusChip(status = report.status)
             }
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(text = "${report.reportDate}  ${report.reportType}",
@@ -154,4 +154,22 @@ private fun ReportCard(report: ReportListItem, onClick: () -> Unit) {
             }
         }
     }
+}
+
+@Composable
+private fun StatusChip(status: String) {
+    val (label, container, content) = when (status) {
+        "COMPLETED" -> Triple("已完成", MaterialTheme.colorScheme.primaryContainer, MaterialTheme.colorScheme.onPrimaryContainer)
+        "PROCESSING", "RETRYING" -> Triple("处理中", MaterialTheme.colorScheme.secondaryContainer, MaterialTheme.colorScheme.onSecondaryContainer)
+        "FAILED", "REVIEW_REQUIRED" -> Triple("需关注", MaterialTheme.colorScheme.errorContainer, MaterialTheme.colorScheme.onErrorContainer)
+        else -> Triple(status, MaterialTheme.colorScheme.surfaceVariant, MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+    Text(
+        text = label,
+        style = MaterialTheme.typography.labelSmall,
+        color = content,
+        modifier = Modifier
+            .background(container, RoundedCornerShape(8.dp))
+            .padding(horizontal = 8.dp, vertical = 3.dp),
+    )
 }
