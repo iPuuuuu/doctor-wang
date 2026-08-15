@@ -99,7 +99,13 @@ curl -s -X POST https://your-domain.example/api/register -H 'Content-Type: appli
 curl -s -X POST https://your-domain.example/api/v1/reports -H "Authorization: Bearer $TOKEN" \
   -F "file=@/path/to/de-identified-report.pdf"
 
-# 5.4 Android release 对接
+# 5.4 安心话聊（疑病症焦虑缓解）
+curl -s -X POST https://your-domain.example/api/v1/chat/anxiety \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"message":"我总担心自己得了重病"}'
+# 应返回循证安抚 + warnings（医疗边界）+ citations（如有报告）
+
+# 5.5 Android release 对接
 ./gradlew assembleRelease -PdoctorWangReleaseBaseUrl=https://your-domain.example/
 # 安装后验证：登录 → 上传 → AI 问诊（真实 OCR/检索/生成链路）
 
