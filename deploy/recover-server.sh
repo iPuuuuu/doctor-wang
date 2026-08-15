@@ -23,7 +23,15 @@ docker build -t deploy-backend:latest -f backend.Dockerfile . || echo "backend i
 docker compose --env-file .env build --build-arg PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ ai-service
 
 echo "==> 4. 启动全栈"
-docker compose --env-file .env up -d
+# VIRUS_SCAN_ENABLED=true 时（fail-closed）必须带上 ClamAV 容器，否则所有上传会被扫描器拒绝。
+# 首次启动 ClamAV 会下载签名库（数分钟），期间上传按 ADR-0008 fail-closed 拒绝，属预期。
+VIRUS_SCAN=$(grep -E '^VIRUS_SCAN_ENABLED=' .env 2>/dev/null | tail -1 | cut -d= -f2 | tr -d '[:space:]' || true)
+if [ "${VIRUS_SCAN:-true}" = "true" ]; then
+  echo "    VIRUS_SCAN_ENABLED=true → 以 scan profile 启动（含 ClamAV，内存受限见 RUNBOOK §6.1）"
+  docker compose --env-file .env --profile scan up -d
+else
+  docker compose --env-file .env up -d
+fi
 
 echo "==> 5. 放置新版 APK 下载"
 mkdir -p /srv/downloads
