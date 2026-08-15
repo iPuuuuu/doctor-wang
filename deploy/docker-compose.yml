@@ -18,6 +18,9 @@ services:
       retries: 10
 
   backend:
+    # 显式镜像名：recover-server.sh 用 backend.Dockerfile（本地 jar 最小镜像）预构建同名镜像，
+    # compose up 直接复用，避免在 1.6GB VPS 上触发 Gradle-in-Docker 构建。
+    image: deploy-backend:latest
     build:
       context: ../doctor-wang-mock-server
     container_name: doctor-wang-backend

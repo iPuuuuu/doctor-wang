@@ -56,7 +56,6 @@ cd deploy && cp .env.example .env && chmod 600 .env && vi .env
 - `POSTGRES_PASSWORD`：独立强密码
 - `APP_AUTH_JWT_SECRET`：≥32 随机字符（`openssl rand -base64 48`）
 - `AI_SERVICE_INTERNAL_TOKEN`：长随机串
-- `SERVER_PUBLIC_BASE_URL=https://your-domain.example`
 - `TLS_CERTS_DIR=/etc/doctor-wang/tls`
 - `AI_SERVICE_ENABLED=true`
 - `DW_AI_LLM_ENDPOINT` / `DW_AI_LLM_API_KEY` / `DW_AI_LLM_MODEL`：DeepSeek（真实生成，已验证）
@@ -118,6 +117,24 @@ curl -s -X POST https://your-domain.example/api/v1/chat/anxiety \
 - **备份**：`docker compose exec postgres pg_dump -U doctor_wang doctor_wang > backup.sql`；`report_files`/`postgres_data` 卷定期快照
 - **日志**：`docker compose logs -f backend ai-service nginx`
 - **回滚**：保留上一版镜像 tag，`docker compose up -d --build` 前先 `docker tag` 旧镜像
+
+## 6.1 故障恢复（OOM 卡死，2026-08-14 事故）
+
+1.6GB 无 swap 的小内存 VPS 上，PostgreSQL + JVM + AI 服务并发时可能 OOM 整机挂起（症状：SSH `banner exchange` 超时、TCP 通但应用层无响应）。恢复步骤：
+
+1. 阿里云控制台 **强制重启** 实例（VNC 若也卡死则先"停止"再"启动"）。
+2. SSH 恢复后，把新版后端 jar 与 APK scp 到服务器（若本地已构建）：
+   ```bash
+   scp doctor-wang-mock-server/build/libs/*.jar root@120.55.186.220:/opt/doctor-wang/backend-app.jar
+   scp app/build/outputs/apk/debug/app-debug.apk root@120.55.186.220:/opt/doctor-wang/doctor-wang-debug-v2.apk
+   ```
+3. 在服务器执行一键恢复脚本（加固 swap/内核参数 → 最小镜像后端 → compose 启动 → 端到端冒烟）：
+   ```bash
+   cd /opt/doctor-wang/deploy && bash recover-server.sh
+   ```
+4. 验证 `docker compose --env-file .env ps` 全部 healthy；脚本已自动做登录 + 安心话聊冒烟。
+
+> 加固内容（`setup-server.sh`）：2G swap、`tcp_max_syn_backlog`/`somaxconn` 缓解半连接堆积、Docker ulimit、容器内存限制（JVM `-Xmx384m`、PG `shared_buffers=64MB`）。
 
 ## 7. 部署后待办（DEPLOY-001b，见 ADR-0009）
 

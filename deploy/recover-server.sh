@@ -33,4 +33,31 @@ echo "==> 6. 健康检查"
 sleep 20
 curl -sk https://localhost/healthz && echo
 curl -sk https://localhost/actuator/health && echo
+
+echo "==> 7. 端到端冒烟（demo 账号登录 + 安心话聊全链路）"
+BASE=https://localhost
+for i in $(seq 1 10); do
+  LOGIN=$(curl -sk -X POST "$BASE/api/login" -H 'Content-Type: application/json' \
+    -d '{"account":"demo@doctorwang.app","password":"123456"}' 2>/dev/null) || LOGIN=""
+  TOKEN=$(printf '%s' "$LOGIN" | python3 -c 'import sys,json; print(json.load(sys.stdin).get("token",""))' 2>/dev/null || echo "")
+  [ -n "$TOKEN" ] && break
+  echo "    等待后端就绪 ($i/10)..."; sleep 10
+done
+if [ -z "$TOKEN" ]; then
+  echo "    ❌ 登录失败（后端未就绪或 demo 账号不可用）: $LOGIN"; exit 1
+fi
+echo "    ✅ 登录成功"
+CHAT=$(curl -sk -X POST "$BASE/api/v1/chat/anxiety" \
+  -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
+  -d '{"message":"我最近总担心自己得了大病，有点焦虑，能帮我聊聊吗"}' 2>/dev/null)
+printf '%s' "$CHAT" | python3 -c '
+import sys, json
+raw = sys.stdin.read()
+try:
+    d = json.loads(raw)
+    msg = d.get("message", "")
+    print("    ✅ 安心话聊回复(" + str(len(msg)) + " 字): " + msg[:60] + ("…" if len(msg) > 60 else ""))
+except Exception:
+    print("    ❌ 回复解析失败: " + raw[:200]); sys.exit(1)
+'
 echo "==> 完成。外部访问: https://120.55.186.220（自签证书需浏览器放行）"
