@@ -21,6 +21,7 @@ pytest
 - `DW_AI_EMBEDDING_ENDPOINT`：OpenAI-compatible `/embeddings` endpoint
 - `DW_AI_LLM_ENDPOINT`：OpenAI-compatible `/chat/completions` endpoint
 - `DW_AI_OCR_ENDPOINT`：DashScope（通义）OpenAI-compatible `/chat/completions` endpoint，`DW_AI_OCR_MODEL`（默认 `qwen-vl-ocr`）识别图片/扫描件；识别结果归一化为 `{ "pages": [{"pageNo", "text", "confidence"}] }` 契约
+`/internal/v1/rag/query` 支持 `mode="anxiety"`（安心话聊）：后端传入 `healthProfile`（年龄/身高/体重/既往史），AI 使用专门的焦虑缓解提示词，严格基于真实报告与档案说话、区分担忧与证据、保持医疗边界并建议就医/心理科；高风险症状仍被安全门拦截。
 - 对应的 `*_API_KEY` 只从环境变量读取，不写入日志或仓库
 
 P2 接入契约、错误码、状态机、对象存储生命周期、job state 迁移和 pgvector migration 建议见 [`docs/superpowers/specs/2026-08-08-ai-retrieval-p2-production-readiness.md`](../docs/superpowers/specs/2026-08-08-ai-retrieval-p2-production-readiness.md)。该文档是生产化准备方案，不表示当前服务已达到生产可用标准。
