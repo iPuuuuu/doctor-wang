@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.ipuuuuu.doctorwang.data.model.MedicalReport
 import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
 import com.ipuuuuu.doctorwang.data.repository.SessionExpiredException
+import com.ipuuuuu.doctorwang.data.util.resolveDownloadExtension
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.delay
@@ -121,10 +122,9 @@ class ReportDetailViewModel @Inject constructor(
                 .onSuccess { body ->
                     runCatching {
                         val dir = java.io.File(context.cacheDir, "report_files").apply { mkdirs() }
-                        // 用报告标题里的扩展名（若有）决定文件名与 MIME，图片报告也能正确打开
-                        val ext = _uiState.value.report?.title?.substringAfterLast('.', "")
-                            ?.takeIf { it.isNotBlank() && it.length <= 5 && it.all { c -> c.isLetterOrDigit() } }
-                            ?: "pdf"
+                        // 扩展名优先从响应 MIME 推导（图片报告也能正确打开），
+                        // 其次回退到标题里的扩展名，最后 pdf。
+                        val ext = resolveDownloadExtension(body.contentType()?.subtype, _uiState.value.report?.title)
                         val file = java.io.File(dir, "report-$reportId.$ext")
                         body.byteStream().use { input ->
                             file.outputStream().use { output -> input.copyTo(output) }
