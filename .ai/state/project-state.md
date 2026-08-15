@@ -43,6 +43,7 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 - 实现：`DashScopeOcrProvider`（ai-service，89 pytest 全绿）；`deploy/.env.example` 含 `DW_AI_*`（LLM/EMBEDDING/OCR）占位。
 - 探测结论：Claude/Gemini 中转站（code.newcli.com）无 embedding 模型，不作为 provider。
 - **ECS 生产部署完成（2026-08-14）**：阿里云 120.55.186.220 全栈上线（PostgreSQL+pgvector / backend / AI / Nginx TLS），Flyway V1-V10、真实 AI 全链路（通义 OCR 配置 + 智谱 embedding-3 2048 维 pgvector 落库 + DeepSeek 生成）外部 HTTPS 200 验证通过；自签证书为已知限制（需域名+受信任证书）。CI 全绿（含 Testcontainers）。
+- 2026-08-15 用户向重构：删除未绑定的 Fake 仓库与占位 URL；ChatService 关键词 mock 回复改为诚实"不可用"提示；AI 服务缺真实 provider 时醒目告警（不静默降级）；VIRUS_SCAN_ENABLED 默认 true；上传/详情页错误码映射为通俗文案。全部后端能力已暴露到 App（上传/列表/详情/状态/重试/删除/下载原文件/问诊/安心话聊/档案/改密/退出）。
 - 2026-08-15 新增：**安心话聊（疑病症/大病焦虑缓解）**——AI service `mode=anxiety` + 专用提示词（结合健康档案+报告、区分担忧与证据、医疗边界、心理科转介），后端 `POST /api/v1/chat/anxiety`，Android 安心话聊页面 + 首页入口；本地全链路实测（DeepSeek+智谱+PG）回复循证且安全；provider/read 超时放宽（60s/90s）。UI 美化：完整 Material3 主题、登录/注册/首页/安心话聊页面打磨。
 - 生产服务器（120.55.186.220）：2026-08-14 晚因 1.6GB 无 swap OOM 卡死，加固脚本与内存限制 compose 已备好（`deploy/setup-server.sh`），待用户重启后恢复部署并验证。
 - 仍待：Android 真机验证、release APK；域名证书；ClamAV 启用；监控告警（DEPLOY-001b）。
