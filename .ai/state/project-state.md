@@ -14,7 +14,7 @@ Harness Version:
 v2 (2026-08-12) — State directory, task lifecycle, agent receipts, escalation workflow
 
 Current Phase:
-生产化阶段。ANDROID-001、PROD-001、SEC-001、DEPLOY-001a 已 ACCEPTED。本地测试实测：Android 15 + backend 70 + AI 86 = **171 tests PASS**。DEPLOY-001b（证书/监控/HA/ClamAV 编排/CI）方案就绪（ADR-0009），实施依赖 Docker/生产环境。Remaining blockers: Docker（PostgreSQL/Testcontainers、TLS 冒烟、21-jre 镜像启动、真实 ClamAV 冒烟、compose healthcheck 验证）、Android 真机/模拟器、API keys。
+生产化阶段。ANDROID-001、PROD-001、SEC-001、DEPLOY-001a 已 ACCEPTED。本地测试实测：Android 15 + backend 78 + AI 97 = **190 tests PASS**、CI 全绿（含 Testcontainers 集成矩阵）。DEPLOY-001b（证书/监控/HA/ClamAV 编排）方案就绪（ADR-0009）+ 监控脚本已备。Remaining blockers: 生产服务器 120.55.186.220 OOM 卡死待用户重启、Android 真机验证、域名证书。
 
 Status:
 AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用户管理、文件上传等基础能力已实现。 The MockMvc login regression and method-agnostic public-route bypass are closed by exact path-and-method matching. The approved TLS, pgcrypto BCrypt migration, server-side logout, Android server revoke, and release HTTPS URL guard are implemented and locally compiled. All locally-runnable tests PASS. PROD-001 ACCEPTED — Java 21 LTS（ADR-0007）：toolchain 21 + Dockerfile 21-jdk/21-jre，JDK 21 上 70/70 tests PASS、字节码 major 65。 SEC-001 ACCEPTED — 上传病毒扫描 fail-closed（ADR-0008）：ClamAvVirusScanner + 条件装配 + 13 新测试；真实 ClamAV 冒烟延 Docker。 DEPLOY-001a ACCEPTED — actuator /actuator/health 端点（ADR-0009）：白名单暴露 + MockMvc 实测 UP + compose healthcheck；DEPLOY-001b 方案就绪待环境。
@@ -45,8 +45,9 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 - **ECS 生产部署完成（2026-08-14）**：阿里云 120.55.186.220 全栈上线（PostgreSQL+pgvector / backend / AI / Nginx TLS），Flyway V1-V10、真实 AI 全链路（通义 OCR 配置 + 智谱 embedding-3 2048 维 pgvector 落库 + DeepSeek 生成）外部 HTTPS 200 验证通过；自签证书为已知限制（需域名+受信任证书）。CI 全绿（含 Testcontainers）。
 - 2026-08-15 用户向重构：删除未绑定的 Fake 仓库与占位 URL；ChatService 关键词 mock 回复改为诚实"不可用"提示；AI 服务缺真实 provider 时醒目告警（不静默降级）；VIRUS_SCAN_ENABLED 默认 true；上传/详情页错误码映射为通俗文案。全部后端能力已暴露到 App（上传/列表/详情/状态/重试/删除/下载原文件/问诊/安心话聊/档案/改密/退出）。
 - 2026-08-15 新增：**安心话聊（疑病症/大病焦虑缓解）**——AI service `mode=anxiety` + 专用提示词（结合健康档案+报告、区分担忧与证据、医疗边界、心理科转介），后端 `POST /api/v1/chat/anxiety`，Android 安心话聊页面 + 首页入口；本地全链路实测（DeepSeek+智谱+PG）回复循证且安全；provider/read 超时放宽（60s/90s）。UI 美化：完整 Material3 主题、登录/注册/首页/安心话聊页面打磨。
-- 生产服务器（120.55.186.220）：2026-08-14 晚因 1.6GB 无 swap OOM 卡死，加固脚本与内存限制 compose 已备好（`deploy/setup-server.sh`），待用户重启后恢复部署并验证。
-- 仍待：Android 真机验证、release APK；域名证书；ClamAV 启用；监控告警（DEPLOY-001b）。
+- 生产服务器（120.55.186.220）：2026-08-14 晚因 1.6GB 无 swap OOM 卡死（SSH 持续超时），需用户在阿里云控制台重启；`deploy/setup-server.sh`（swap/内核参数/ulimit）+ `recover-server.sh`（一键恢复：加固→最小镜像后端→compose 启动（VIRUS_SCAN_ENABLED=true 时自动带 scan profile 含 ClAMAV）→健康检查→demo 登录+安心话聊端到端冒烟）已备好并推送（20a4c8c/23cb272）；`deploy/health-monitor.sh`（cron 5 分钟巡检 + 飞书 webhook 可选告警）已备。
+- 2026-08-15 V11：问诊与安心话聊会话隔离（chat_message.conversation 列，问诊 history 与 anxiety history 独立）；Android 多处 UX 修复（报告列表返回刷新、删除确认、下载 MIME、会话过期跳登录）。
+- 仍待：服务器重启后恢复部署上线（v2 APK 已备 `app-debug.apk`，recover 脚本自动放置到 /srv/downloads/doctor-wang-debug-v2.apk）；Android 真机验证、release APK；域名证书；ClamAV 启用（scan profile）；监控告警安装（health-monitor.sh，DEPLOY-001b）。
 - 2026-08-14 本地 PG17+pgvector 实测：Flyway V1–V10 应用、Hibernate validate 通过、PgVectorStore 真实 2048 维向量、后端↔AI 全链路（上传→AI 处理→COMPLETED→聊天 citation 1）——期间修复 7 个真实生产 bug（V6 undo 重复、V9 HNSW 2000 维上限、V10 weight 类型、actuator 过滤、worker 事务自调用、实体缺无参构造器、chat namespace 用户 ID 错误；AI_SERVICE_* env 改 APP_AI_SERVICE_*）。
 - 证据：`.ai/handoffs/RAG-001/architect-pgvector-fullchain-verification.md`、`architect-real-llm-verification.md`、`architect-real-embeddings.md`、`architect-real-ocr.md`。
 
