@@ -193,14 +193,23 @@ private fun HealthOverviewCard(
     recentRecordText: String,
     modifier: Modifier = Modifier,
 ) {
-    Card(modifier = modifier.fillMaxWidth()) {
+    Card(
+        modifier = modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+        shape = RoundedCornerShape(24.dp),
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(text = "今日健康状态", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(
+                text = "今日健康状态",
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 DashboardStat(title = "BMI", value = bmiText, modifier = Modifier.weight(1f))
                 DashboardStat(title = "重点提示", value = statusSummary, modifier = Modifier.weight(1f))
@@ -239,13 +248,13 @@ private fun DashboardStat(
     Column(
         modifier = modifier
             .background(
-                color = MaterialTheme.colorScheme.surfaceVariant,
+                color = MaterialTheme.colorScheme.surface,
                 shape = RoundedCornerShape(16.dp),
             )
             .padding(12.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Text(text = title, style = MaterialTheme.typography.labelLarge)
+        Text(text = title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Text(text = value, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
     }
 }
