@@ -250,7 +250,7 @@ class RemoteDoctorWangRepository @Inject constructor(
     private fun mapNetworkError(error: Throwable): Throwable {
         return when (error) {
             is ConnectException, is SocketTimeoutException -> IOException(
-                "无法连接到 Doctor-Wang 服务，请确认当前服务地址可访问；本地调试时请检查后端服务与网络连接。",
+                "无法连接到服务，请检查网络连接后重试。",
                 error,
             )
             is HttpException -> {

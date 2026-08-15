@@ -20,6 +20,14 @@ store = create_vector_store(settings.database_url)
 embedder = OpenAICompatibleEmbeddingProvider(settings.embedding_endpoint, settings.embedding_api_key, settings.embedding_model, settings.embedding_dimensions, settings.provider_timeout_seconds) if settings.embedding_endpoint else FakeEmbeddingProvider(settings.embedding_dimensions, settings.embedding_model)
 generator = OpenAICompatibleGenerationProvider(settings.llm_endpoint, settings.llm_api_key, settings.llm_model, settings.provider_timeout_seconds) if settings.llm_endpoint else None
 ocr = DashScopeOcrProvider(settings.ocr_endpoint, settings.ocr_api_key, settings.ocr_model, settings.provider_timeout_seconds) if settings.ocr_endpoint else None
+
+# 面向用户的服务不允许静默降级：缺真实 provider 时醒目告警（生产必须配置 DW_AI_*）
+if settings.embedding_endpoint is None or settings.llm_endpoint is None:
+    import logging as _logging
+    _logging.getLogger("uvicorn.error").warning(
+        "AI SERVICE RUNNING WITHOUT REAL PROVIDERS: set DW_AI_EMBEDDING_* / DW_AI_LLM_* "
+        "(and DW_AI_OCR_* for image reports) in production."
+    )
 router = DocumentTypeRouter(image=ocr) if ocr else DocumentTypeRouter()
 rag_graph = build_rag_graph()
 job_repo = JobRepository(settings.job_state_path)

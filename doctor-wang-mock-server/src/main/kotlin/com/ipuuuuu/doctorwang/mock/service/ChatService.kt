@@ -168,15 +168,14 @@ class ChatService(
         }
     }
 
+    // 面向用户：AI 不可用时给出诚实提示，不做关键词"假装回答"。
     private fun mockReply(message: String, user: com.ipuuuuu.doctorwang.mock.persistence.entity.AppUserEntity): ChatResponse {
-        val normalized = message.lowercase()
-        val reply = when {
-            normalized.contains("胃") -> "根据你的健康档案，你之前有胃炎记录。建议近期保持清淡饮食，避免辛辣刺激；如果疼痛持续或加重，请及时线下就医。"
-            normalized.contains("肝") || normalized.contains("脂肪肝") -> "结合你既往的轻度脂肪肝记录，建议近期控制油脂摄入、规律运动，并复查肝功能。"
-            normalized.contains("头晕") || normalized.contains("乏力") -> "头晕或乏力可能与睡眠、饮食、贫血或近期压力有关。建议先记录持续时间与伴随症状，必要时完善血常规等检查。"
-            else -> "我已经记录你的情况。结合${user.name}当前档案信息，建议持续观察症状变化；如症状持续或明显加重，请及时线下就医。"
-        }
-        return ChatResponse(message = reply, warnings = emptyList(), citations = emptyList(), traceId = TraceIdContext.get())
+        return ChatResponse(
+            message = "AI 健康助手暂时不可用，请稍后再试。如有不适请及时线下就医；如遇紧急症状请立即拨打 120。",
+            warnings = listOf("健康辅助不能替代医生诊断。"),
+            citations = emptyList(),
+            traceId = TraceIdContext.get(),
+        )
     }
 
     companion object {

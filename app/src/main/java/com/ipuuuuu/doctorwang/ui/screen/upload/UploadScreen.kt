@@ -77,9 +77,15 @@ fun UploadScreen(
                     else -> "等待选择并上传文件"
                 })
                 uiState.reportStatus?.let { status ->
-                    Text(text = "可重试：${if (status.canRetry) "是" else "否"}")
-                    Text(text = "需要复核：${if (status.requiresReview) "是" else "否"}")
-                    status.failureCategory?.let { Text(text = "失败分类：$it") }
+                    if (status.requiresReview) {
+                        Text(text = "报告内容需要人工复核，结果会尽快更新，请留意。", color = MaterialTheme.colorScheme.error)
+                    }
+                    if (status.canRetry) {
+                        Text(text = "解析暂时失败，可稍后重试。")
+                    }
+                    status.failureCategory?.let { code ->
+                        Text(text = friendlyFailure(code), color = MaterialTheme.colorScheme.error)
+                    }
                 }
             }
         }
@@ -105,4 +111,14 @@ fun UploadScreen(
             Text(if (uiState.isUploading) "上传中..." else if (uiState.isPollingStatus) "查询状态中..." else "开始上传")
         }
     }
+}
+
+private fun friendlyFailure(code: String): String = when (code) {
+    "LOW_OCR_CONFIDENCE" -> "报告图片不够清晰，无法准确识别，请上传更清晰的图片或 PDF。"
+    "REVIEW_REQUIRED" -> "报告内容需要人工复核，结果会尽快更新。"
+    "AI_RESULT_INVALID" -> "AI 分析结果未通过校验，请稍后重试或联系客服。"
+    "AI_SERVICE_UNAVAILABLE" -> "AI 服务暂时不可用，请稍后重试。"
+    "SCAN_UNAVAILABLE" -> "安全扫描服务暂时不可用，上传已暂停，请稍后重试。"
+    "MALWARE_DETECTED" -> "文件未通过安全扫描，已被拒绝。"
+    else -> "解析未完成，请稍后重试或重新上传。"
 }

@@ -140,18 +140,26 @@ fun ReportDetailScreen(
 private fun ReportStatusBlock(status: MedicalReport, isRefreshing: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text(text = status.summary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-        status.phase?.let {
-            Text(text = "当前阶段：$it", style = MaterialTheme.typography.bodyMedium)
+        if (status.requiresReview) {
+            Text(text = "报告内容需要人工复核，结果会尽快更新，请留意。", color = MaterialTheme.colorScheme.error)
         }
-        Text(text = "可重试：${if (status.canRetry) "是" else "否"}")
-        Text(text = "需要人工复核：${if (status.requiresReview) "是" else "否"}")
         status.failureCategory?.let {
-            Text(text = "失败分类：$it", color = MaterialTheme.colorScheme.error)
+            Text(text = friendlyFailure(it), color = MaterialTheme.colorScheme.error)
         }
         if (isRefreshing) {
             Text(text = "正在刷新处理状态…", color = MaterialTheme.colorScheme.primary)
         }
     }
+}
+
+private fun friendlyFailure(code: String): String = when (code) {
+    "LOW_OCR_CONFIDENCE" -> "报告图片不够清晰，无法准确识别，请上传更清晰的图片或 PDF。"
+    "REVIEW_REQUIRED" -> "报告内容需要人工复核，结果会尽快更新。"
+    "AI_RESULT_INVALID" -> "AI 分析结果未通过校验，请稍后重试或联系客服。"
+    "AI_SERVICE_UNAVAILABLE" -> "AI 服务暂时不可用，请稍后重试。"
+    "SCAN_UNAVAILABLE" -> "安全扫描服务暂时不可用，请稍后重试。"
+    "MALWARE_DETECTED" -> "文件未通过安全扫描，已被拒绝。"
+    else -> "解析未完成，请稍后重试或重新上传。"
 }
 
 @Composable

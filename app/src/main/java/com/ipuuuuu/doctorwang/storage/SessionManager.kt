@@ -13,9 +13,6 @@ import javax.inject.Singleton
 
 private val Context.dataStore by preferencesDataStore(name = "doctor_wang_session")
 
-const val LOCAL_DEBUG_SERVER_URL = "http://10.0.2.2:8080/"
-const val DEMO_SERVER_PLACEHOLDER_URL = "https://doctor-wang-demo.example.com/"
-
 @Singleton
 class SessionManager @Inject constructor(
     @ApplicationContext private val context: Context,
@@ -25,7 +22,6 @@ class SessionManager @Inject constructor(
         val UserId = stringPreferencesKey("user_id")
         val LoggedIn = booleanPreferencesKey("logged_in")
         val ServerUrl = stringPreferencesKey("server_url")
-        val ServerGuideSeen = booleanPreferencesKey("server_guide_seen")
     }
 
     suspend fun saveSession(token: String, userId: String) {
@@ -66,21 +62,7 @@ class SessionManager @Inject constructor(
         }
     }
 
-    suspend fun hasSeenServerGuide(): Boolean {
-        return context.dataStore.data.first()[Keys.ServerGuideSeen] == true
-    }
-
-    suspend fun markServerGuideSeen() {
-        context.dataStore.edit { preferences ->
-            preferences[Keys.ServerGuideSeen] = true
-        }
-    }
-
     fun defaultServerUrl(): String = normalizeServerUrl(BuildConfig.DEFAULT_SERVER_URL)
-
-    fun isUsingHostedDefault(): Boolean = BuildConfig.IS_DEMO_SERVER_CONFIGURED
-
-    fun currentEnvironmentLabel(): String = BuildConfig.SERVER_ENVIRONMENT_LABEL
 
     private fun normalizeServerUrl(value: String): String {
         val trimmed = value.trim()
