@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     llm_endpoint: str | None = None
     llm_api_key: str | None = None
     llm_model: str = "configured-model"
-    provider_timeout_seconds: float = 15.0
+    provider_timeout_seconds: float = 60.0
 
 
 settings = Settings()
