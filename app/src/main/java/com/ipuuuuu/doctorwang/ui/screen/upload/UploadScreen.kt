@@ -49,9 +49,11 @@ fun UploadScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
-        Text(text = "上传医疗资料", style = MaterialTheme.typography.headlineSmall)
-        Text(text = "支持 PDF / JPG / PNG")
-        Text(text = "已选择：${uiState.selectedUri?.lastPathSegment?.substringAfterLast('/') ?: "未选择文件"}")
+        Text(text = "上传医疗资料", style = MaterialTheme.typography.headlineSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+        Text(text = "支持 PDF / JPG / PNG，单文件不超过 20MB", style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = "已选择：${uiState.selectedUri?.lastPathSegment?.substringAfterLast('/') ?: "未选择文件"}",
+            style = MaterialTheme.typography.bodyMedium)
         uiState.errorMessage?.let {
             Text(text = it, color = MaterialTheme.colorScheme.error)
         }
