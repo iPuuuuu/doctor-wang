@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.ipuuuuu.doctorwang.data.model.Message
 import com.ipuuuuu.doctorwang.data.repository.DoctorWangRepository
+import com.ipuuuuu.doctorwang.data.repository.SessionExpiredException
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -77,6 +78,7 @@ class AnxietyChatViewModel @Inject constructor(
                 .onFailure { error ->
                     _uiState.value = _uiState.value.copy(
                         isSending = false,
+                        sessionExpired = error is SessionExpiredException,
                         errorMessage = error.message ?: "发送失败，请稍后再试",
                     )
                 }
