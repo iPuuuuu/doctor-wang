@@ -18,6 +18,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +42,7 @@ fun ReportDetailScreen(
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val report = uiState.report
     val status = uiState.reportStatus
+    var showDeleteConfirm by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.sessionExpired) {
         if (uiState.sessionExpired) onSessionExpired()
@@ -47,14 +52,34 @@ fun ReportDetailScreen(
         if (uiState.deleted) onDeleted()
     }
 
+    if (showDeleteConfirm) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { showDeleteConfirm = false },
+            title = { Text("删除这份报告？") },
+            text = { Text("删除后报告记录与解析结果将无法恢复。此操作不可撤销。") },
+            confirmButton = {
+                androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false; viewModel.delete() }) {
+                    Text("确认删除", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showDeleteConfirm = false }) {
+                    Text("取消")
+                }
+            },
+        )
+    }
+
     // 下载完成后用系统"打开方式"展示原报告文件
     val context = androidx.compose.ui.platform.LocalContext.current
     LaunchedEffect(uiState.downloadedFile) {
         val file = uiState.downloadedFile ?: return@LaunchedEffect
         runCatching {
             val uri = FileProvider.getUriForFile(context, context.packageName + ".fileprovider", file)
+            val mime = android.webkit.MimeTypeMap.getSingleton()
+                .getMimeTypeFromExtension(file.extension.lowercase()) ?: "application/octet-stream"
             val intent = Intent(Intent.ACTION_VIEW).apply {
-                setDataAndType(uri, "application/pdf")
+                setDataAndType(uri, mime)
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
             context.startActivity(Intent.createChooser(intent, "打开报告文件"))
@@ -143,7 +168,7 @@ fun ReportDetailScreen(
                     }
                 }
                 Button(
-                    onClick = viewModel::delete,
+                    onClick = { showDeleteConfirm = true },
                     modifier = Modifier.weight(1f),
                     enabled = !uiState.isDeleting,
                     colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),

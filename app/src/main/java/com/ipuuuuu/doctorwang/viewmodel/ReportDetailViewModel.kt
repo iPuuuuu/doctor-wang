@@ -121,7 +121,11 @@ class ReportDetailViewModel @Inject constructor(
                 .onSuccess { body ->
                     runCatching {
                         val dir = java.io.File(context.cacheDir, "report_files").apply { mkdirs() }
-                        val file = java.io.File(dir, "report-$reportId.pdf")
+                        // 用报告标题里的扩展名（若有）决定文件名与 MIME，图片报告也能正确打开
+                        val ext = _uiState.value.report?.title?.substringAfterLast('.', "")
+                            ?.takeIf { it.isNotBlank() && it.length <= 5 && it.all { c -> c.isLetterOrDigit() } }
+                            ?: "pdf"
+                        val file = java.io.File(dir, "report-$reportId.$ext")
                         body.byteStream().use { input ->
                             file.outputStream().use { output -> input.copyTo(output) }
                         }
