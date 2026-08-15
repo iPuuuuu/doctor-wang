@@ -9,7 +9,7 @@
 
 1. **数据库基线 = PostgreSQL**。仓库（Flyway V1–V9、Testcontainers 矩阵、pgvector 规划、compose）全部基于 PostgreSQL。私有笔记中的"MySQL/RDS 设想"**不采用**；如坚持 MySQL，须先出 ADR 并改造（成本高，不推荐）。
 2. **HTTPS 需要域名**。ADR-0003 强制 TLS；Let's Encrypt 不能给纯 IP 签发受信任证书，Android release 默认拒绝自签证书。**建议：先给 `120.55.186.220` 绑定一个域名（DNS A 记录），再部署**。
-3. **病毒扫描开关**。`VIRUS_SCAN_ENABLED=true` 需 ClamAV 端点（compose 已提供可选 `scan` profile，见 §3）；首次部署可先 `false`（记录为已知缺口），随 DEPLOY-001b 启用。
+3. **病毒扫描开关**。1.6GB 内存机器**保持 `false`**（2026-08-15 实测：clamd 全量病毒库需 700MB-1GB 内存，与后端/AI/PG 争内存导致整机换页卡死，用户决策"不影响使用即可"）；升级 4GB+ 内存后开 `true` 并用 `scan` profile 启动 ClamAV（镜像已就绪）。
 
 ## 1. 服务器准备（一次性）
 
