@@ -64,7 +64,7 @@ class GlobalExceptionHandler {
         "AUTHENTICATION_FAILED", "AUTHENTICATION_REQUIRED" -> HttpStatus.UNAUTHORIZED
         "LOGIN_LOCKED", "REGISTER_THROTTLED" -> HttpStatus.TOO_MANY_REQUESTS
         "PROCESSING_TIMEOUT" -> HttpStatus.GATEWAY_TIMEOUT
-        "AI_RESULT_INVALID" -> HttpStatus.BAD_GATEWAY
+        "AI_RESULT_INVALID", "INTERPRETATION_FAILED" -> HttpStatus.BAD_GATEWAY
         else -> HttpStatus.BAD_REQUEST
     }
 }

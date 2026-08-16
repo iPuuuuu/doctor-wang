@@ -97,7 +97,11 @@ class ReportProcessingService(
     fun regenerateInterpretation(id: Long): ReportDetailV1Response {
         val report = ownedReport(id)
         val namespace = "report:${report.user.id}:${report.id}"
-        val interpretation = interpretationService.generate(report, namespace)
+        val interpretation = try {
+            interpretationService.generate(report, namespace)
+        } catch (_: Exception) {
+            throw ApiException("INTERPRETATION_FAILED", "解读生成失败，请稍后重试")
+        }
         report.summary = interpretation.summary
         findings.deleteAll(findings.findAllByReportOrderByIdAsc(report))
         suggestions.deleteAll(suggestions.findAllByReportOrderByIdAsc(report))
