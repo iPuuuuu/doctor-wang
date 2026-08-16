@@ -32,6 +32,7 @@ class ReportProcessingService(
     private val stateMachine: ReportJobStateMachine,
     private val virusScanner: VirusScanner,
     private val cleanup: CompensationCleanupService,
+    private val interpretationService: ReportInterpretationService,
 ) {
     companion object { const val MAX_SIZE = 20L * 1024 * 1024; val TYPES = setOf("application/pdf", "image/jpeg", "image/png") }
 
@@ -86,6 +87,25 @@ class ReportProcessingService(
         stateMachine.transition(job.status, job.stage, "RETRYING", "STORED")
         job.status = "RETRYING"; job.stage = "STORED"; job.errorCode = null; job.retryable = false; job.nextAttemptAt = OffsetDateTime.now().plusSeconds(backoffSeconds(job.attemptCount)); job.updatedAt = OffsetDateTime.now()
         jobs.save(job); return ReportStatusResponse(id, job.id, job.status, job.stage, job.retryable, job.errorCode, job.updatedAt, job.traceId)
+    }
+
+    /**
+     * 重新解读（用户自助修复）：当报告已完成但解读缺失/过时（例如生成时 AI 服务不可用）
+     * 时，用当前 AI 服务重新生成摘要/发现/建议并写回。返回更新后的详情。
+     */
+    @Transactional
+    fun regenerateInterpretation(id: Long): ReportDetailV1Response {
+        val report = ownedReport(id)
+        val namespace = "report:${report.user.id}:${report.id}"
+        val interpretation = interpretationService.generate(report, namespace)
+        report.summary = interpretation.summary
+        findings.deleteAll(findings.findAllByReportOrderByIdAsc(report))
+        suggestions.deleteAll(suggestions.findAllByReportOrderByIdAsc(report))
+        interpretation.findings.forEach { f -> findings.save(MedicalReportFindingEntity(report = report, findingText = f)) }
+        interpretation.suggestions.forEach { s -> suggestions.save(MedicalReportSuggestionEntity(report = report, suggestionText = s)) }
+        report.updatedAt = OffsetDateTime.now()
+        reports.save(report)
+        return detail(id)
     }
 
     @Transactional

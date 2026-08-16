@@ -60,7 +60,7 @@ class ReportUploadScanBehaviorTest {
 
     private fun service() = ReportProcessingService(
         reports, files, jobs, findings, suggestions, storage, idempotency,
-        ObjectMapper(), stateMachine, scanner, cleanup,
+        ObjectMapper(), stateMachine, scanner, cleanup, mock(ReportInterpretationService::class.java),
     )
 
     @BeforeEach

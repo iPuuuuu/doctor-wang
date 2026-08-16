@@ -51,6 +51,9 @@ class ReportV1Controller(private val service: ReportProcessingService) {
     @PostMapping("/{reportId}/retry")
     fun retry(@PathVariable reportId: Long): ReportStatusResponse = service.retry(reportId)
 
+    @PostMapping("/{reportId}/interpret")
+    fun regenerateInterpretation(@PathVariable reportId: Long): ReportDetailV1Response = service.regenerateInterpretation(reportId)
+
     @DeleteMapping("/{reportId}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     fun delete(@PathVariable reportId: Long) = service.delete(reportId)

@@ -149,6 +149,28 @@ class ReportDetailViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(downloadedFile = null)
     }
 
+    fun regenerateInterpretation() {
+        if (_uiState.value.isRetrying) return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isRetrying = true, errorMessage = null)
+            repository.regenerateInterpretation(reportId)
+                .onSuccess { report ->
+                    _uiState.value = _uiState.value.copy(
+                        isRetrying = false,
+                        report = report,
+                        reportStatus = report,
+                        isLoading = false,
+                    )
+                }
+                .onFailure { error ->
+                    _uiState.value = _uiState.value.copy(
+                        isRetrying = false,
+                        errorMessage = error.message ?: "重新解读失败，请稍后再试",
+                    )
+                }
+        }
+    }
+
     fun retry() {
         if (_uiState.value.isRetrying) return
         viewModelScope.launch {

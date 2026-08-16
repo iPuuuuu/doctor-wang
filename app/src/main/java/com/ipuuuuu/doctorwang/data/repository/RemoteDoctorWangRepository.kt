@@ -215,6 +215,10 @@ class RemoteDoctorWangRepository @Inject constructor(
         return networkCall { api().retryReport(reportId).toDomain() }
     }
 
+    override suspend fun regenerateInterpretation(reportId: Long): Result<MedicalReport> {
+        return networkCall { api().regenerateInterpretation(reportId).toDomain() }
+    }
+
     override suspend fun deleteReport(reportId: Long): Result<Unit> {
         return networkCall { api().deleteReport(reportId); Unit }
     }

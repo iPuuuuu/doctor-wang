@@ -228,6 +228,9 @@ interface DoctorWangApi {
     @retrofit2.http.POST("/api/v1/reports/{reportId}/retry")
     suspend fun retryReport(@Path("reportId") reportId: Long): ReportStatusResponse
 
+    @retrofit2.http.POST("/api/v1/reports/{reportId}/interpret")
+    suspend fun regenerateInterpretation(@Path("reportId") reportId: Long): MedicalReportResponse
+
     @retrofit2.http.DELETE("/api/v1/reports/{reportId}")
     suspend fun deleteReport(@Path("reportId") reportId: Long)
 }

@@ -34,7 +34,9 @@ class UnavailableReportJobExecutorTest {
     private val fileEntity = MedicalReportFileEntity(report = report, storageKey = "k/11", originalFileName = "r.pdf", mimeType = "application/pdf", fileSize = 100L, sha256 = "s")
     private val job = ReportProcessingJobEntity(id = UUID.randomUUID(), report = report, userId = 7, status = "STORED", stage = "STORED", traceId = "t1")
 
-    private fun executor() = UnavailableReportJobExecutor(client, files, storage, props)
+    private val interpretationService = ReportInterpretationService(client)
+
+    private fun executor() = UnavailableReportJobExecutor(client, files, storage, props, interpretationService)
 
     // Kotlin 非空参数 + Mockito any() 需 elvis 回退（项目既有模式）
     private fun anySubmit() = any(com.ipuuuuu.doctorwang.mock.model.AiIngestionRequest::class.java)
@@ -108,7 +110,7 @@ class UnavailableReportJobExecutorTest {
     @Test
     fun `fails when AI service not configured`() {
         val disabled = AiServiceProperties(enabled = false, baseUrl = "", internalToken = "")
-        val result = UnavailableReportJobExecutor(client, files, storage, disabled).execute(job)
+        val result = UnavailableReportJobExecutor(client, files, storage, disabled, ReportInterpretationService(client)).execute(job)
         assertEquals("FAILED", result.status)
         assertEquals("AI_SERVICE_NOT_CONFIGURED", result.errorCode)
     }

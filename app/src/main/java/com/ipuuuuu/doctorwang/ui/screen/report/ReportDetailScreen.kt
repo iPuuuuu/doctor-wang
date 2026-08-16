@@ -15,6 +15,7 @@ import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -166,6 +167,14 @@ fun ReportDetailScreen(
                     ) {
                         Text(if (uiState.isRetrying) "重试中..." else "重新解析")
                     }
+                }
+                // 重新解读：解读缺失/过时时可自助重新生成（AI 服务当时不可用等情况）
+                OutlinedButton(
+                    onClick = viewModel::regenerateInterpretation,
+                    modifier = Modifier.weight(1f),
+                    enabled = !uiState.isRetrying,
+                ) {
+                    Text(if (uiState.isRetrying) "解读中..." else "重新解读")
                 }
                 Button(
                     onClick = { showDeleteConfirm = true },
