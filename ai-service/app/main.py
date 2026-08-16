@@ -9,6 +9,7 @@ from .chunking import chunk_pages
 from .embeddings import FakeEmbeddingProvider
 from .vectorstore import InMemoryVectorStore, VectorRecord, create_vector_store
 from .graph import build_rag_graph
+from .agentic_rag import agentic_rag_graph
 from .jobs import JobRepository
 from .providers import DashScopeOcrProvider, OpenAICompatibleEmbeddingProvider, OpenAICompatibleGenerationProvider
 from .safety import evaluate_medical_risk
@@ -105,7 +106,8 @@ def rag_query(request: RagRequest, x_internal_token: str | None = Header(default
     risk_level, warnings, blocked = evaluate_medical_risk(request.question)
     if blocked:
         return RagResponse(requestId=request.requestId, status="SAFETY_BLOCKED", riskLevel=risk_level, summary="当前问题可能涉及紧急危险信号，请立即联系急救服务或尽快就医。", citations=[], warnings=warnings, needsReview=True, traceId=request.traceId)
-    return rag_graph.invoke({"request": request, "store": store, "embedder": embedder, "generator": generator})["response"]
+    # 自校正 Agentic RAG：生成→证据校验→回溯修正（quality-gate backtracking）
+    return agentic_rag_graph.invoke({"request": request, "store": store, "embedder": embedder, "generator": generator, "judge": generator, "corrections": 0})["response"]
 
 
 @app.post("/internal/v1/agent/query", response_model=AgentResponse)

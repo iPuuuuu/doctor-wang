@@ -36,44 +36,74 @@ def search(store, namespace: str, query_vector: list[float], query_text: str, to
     return [(by_id[cid], vector_scores.get(cid, 0.0)) for cid in ordered if cid in by_id]
 
 
-def query_rag(request, store, embedder: EmbeddingProvider, generator=None, searcher=None) -> RagResponse:
+def retrieve(request, store, embedder: EmbeddingProvider, searcher=None) -> tuple[str, str, list[tuple]]:
+    """检索阶段：命名空间校验 + 风险分流 + 检索。返回 (status, risk, hits)。
+    status ∈ {"ok", "namespace_blocked", "safety_blocked", "insufficient"}。"""
     namespace = f"report:{request.userId}:{request.reportId}"
     if namespace not in request.namespaceHints:
-        return RagResponse(requestId=request.requestId, status="SAFETY_BLOCKED", riskLevel="HIGH", summary="未授权的报告空间。", citations=[], warnings=["请求未通过报告归属校验。"], needsReview=True, traceId=request.traceId)
+        return "namespace_blocked", "HIGH", []
     risk = risk_triage(request.question)
     if risk == "HIGH":
+        return "safety_blocked", risk, []
+    retrieve_fn = searcher or (lambda ns, qv, qt, k: search(store, ns, qv, qt, k))
+    hits = retrieve_fn(namespace, embedder.embed([request.question])[0], request.question, request.topK)
+    if not hits:
+        return "insufficient", risk, []
+    return "ok", risk, hits
+
+
+def build_citations(request, hits) -> list[Citation]:
+    return [Citation(sourceId=str(request.reportId), chunkId=r.chunk_id,
+                     pageNo=r.metadata.get("page_no"), excerpt=r.text,
+                     confidence=r.metadata.get("confidence", 0.0),
+                     documentVersion=r.metadata.get("document_version", "unknown"))
+            for r, _ in hits]
+
+
+def build_context(request, hits) -> str:
+    """生成阶段的上下文：报告片段（+ 安心话聊：健康档案、症状知识库）。"""
+    citations = build_citations(request, hits)
+    context = "\n".join(c.excerpt for c in citations)
+    if request.mode == "anxiety":
+        kb_context, _ = symptom_kb_context(request.question)
+        context = f"用户健康档案:\n{request.healthProfile or '（未提供）'}\n\n报告片段:\n{context}"
+        if kb_context:
+            # 受控症状知识库：常见良性解释 + 就医信号（非诊断、有版本、可追溯）
+            context = f"{context}\n\n{kb_context}"
+    return context
+
+
+def generate_summary(request, context, generator) -> str:
+    """生成阶段：LLM 生成（anxiety 用专用提示词）。失败时诚实兜底。"""
+    try:
+        if request.mode == "anxiety":
+            return generator.generate(request.question, context, system_prompt=ANXIETY_SYSTEM_PROMPT)
+        return generator.generate(request.question, context)
+    except Exception:
+        return "模型服务暂时不可用；请根据报告原文向医生确认。"
+
+
+def query_rag(request, store, embedder: EmbeddingProvider, generator=None, searcher=None) -> RagResponse:
+    """单步 RAG（与自校正图共用检索/生成原语，行为向后兼容）。"""
+    status, risk, hits = retrieve(request, store, embedder, searcher)
+    trace = request.traceId
+    if status == "namespace_blocked":
+        return RagResponse(requestId=request.requestId, status="SAFETY_BLOCKED", riskLevel="HIGH", summary="未授权的报告空间。", citations=[], warnings=["请求未通过报告归属校验。"], needsReview=True, traceId=trace)
+    if status == "safety_blocked":
         return RagResponse(requestId=request.requestId, status="SAFETY_BLOCKED", riskLevel="HIGH",
                            summary="当前问题可能涉及紧急危险信号，请立即联系急救服务（120）或尽快就医。",
                            citations=[], warnings=["AI 健康辅助不能替代急诊或医生判断。"],
-                           needsReview=True, traceId=request.traceId)
-    retrieve = searcher or (lambda ns, qv, qt, k: search(store, ns, qv, qt, k))
-    hits = retrieve(namespace, embedder.embed([request.question])[0], request.question, request.topK)
-    if not hits:
+                           needsReview=True, traceId=trace)
+    if status == "insufficient":
         return RagResponse(requestId=request.requestId, status="INSUFFICIENT_EVIDENCE", riskLevel=risk,
                            summary="当前报告中没有足够的可检索资料回答这个问题。",
                            citations=[], warnings=["请补充资料并向医生确认。"],
-                           needsReview=True, traceId=request.traceId)
-    citations = [Citation(sourceId=str(request.reportId), chunkId=r.chunk_id,
-                          pageNo=r.metadata.get("page_no"), excerpt=r.text,
-                          confidence=r.metadata.get("confidence", 0.0),
-                          documentVersion=r.metadata.get("document_version", "unknown"))
-                 for r, _ in hits]
-    summary = "以下内容是基于报告片段的健康辅助解释，不能替代医生诊断。"
-    if generator:
-        try:
-            context = "\n".join(c.excerpt for c in citations)
-            if request.mode == "anxiety":
-                kb_context, _ = symptom_kb_context(request.question)
-                context = f"用户健康档案:\n{request.healthProfile or '（未提供）'}\n\n报告片段:\n{context}"
-                if kb_context:
-                    # 受控症状知识库：常见良性解释 + 就医信号（非诊断、有版本、可追溯）
-                    context = f"{context}\n\n{kb_context}"
-                summary = generator.generate(request.question, context, system_prompt=ANXIETY_SYSTEM_PROMPT)
-            else:
-                summary = generator.generate(request.question, context)
-        except Exception:
-            summary = "模型服务暂时不可用；请根据报告原文向医生确认。"
+                           needsReview=True, traceId=trace)
+    citations = build_citations(request, hits)
+    context = build_context(request, hits)
+    summary = generate_summary(request, context, generator) if generator else \
+        "以下内容是基于报告片段的健康辅助解释，不能替代医生诊断。"
     return RagResponse(requestId=request.requestId, status="OK", riskLevel=risk,
                        summary=summary, citations=citations,
                        warnings=["请将报告原文和本解释一并交由医生确认。"],
-                       needsReview=(risk == "MEDIUM"), traceId=request.traceId)
+                       needsReview=(risk == "MEDIUM"), traceId=trace)

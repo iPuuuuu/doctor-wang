@@ -109,8 +109,8 @@ def score_decline(generator, question: str, answer: str) -> dict:
     }
 
 
-def run_mode(args, mode: str, store, embedder, generator, dataset) -> tuple[list[dict], dict]:
-    """跑一个检索模式，返回 (逐题明细, 聚合指标)。mode=vector 用纯向量（基线），mode=hybrid 用 RRF 融合。"""
+def run_mode(args, mode: str, engine: str, store, embedder, generator, dataset) -> tuple[list[dict], dict]:
+    """跑一个 (检索模式 × 生成引擎) 组合，返回 (逐题明细, 聚合指标)。"""
     def vector_searcher(namespace, qv, qt, k):
         return store.search(namespace, qv, k)
 
@@ -119,19 +119,24 @@ def run_mode(args, mode: str, store, embedder, generator, dataset) -> tuple[list
         return search(store, namespace, qv, qt, k)
 
     searcher = vector_searcher if mode == "vector" else hybrid_searcher
-    print(f"[eval] mode={mode} cases={len(dataset)}")
+    print(f"[eval] mode={mode} engine={engine} cases={len(dataset)}")
     results = []
     for case in dataset:
         request = RagRequest(
-            requestId=f"eval-{mode}-{case['id']}",
+            requestId=f"eval-{mode}-{engine}-{case['id']}",
             userId=1,
             reportId=case["reportId"],
             question=case["question"],
             namespaceHints=[case["namespace"]],
             topK=5,
-            traceId=f"eval-{mode}-{case['id']}",
+            traceId=f"eval-{mode}-{engine}-{case['id']}",
         )
-        resp = query_rag(request, store, embedder, generator, searcher=searcher)
+        if engine == "agentic":
+            from app.agentic_rag import agentic_rag_graph
+            resp = agentic_rag_graph.invoke({"request": request, "store": store, "embedder": embedder,
+                                             "generator": generator, "searcher": searcher, "corrections": 0})["response"]
+        else:
+            resp = query_rag(request, store, embedder, generator, searcher=searcher)
         answer = resp.summary
         context = "\n".join(c.excerpt for c in resp.citations)
         row = {
@@ -169,6 +174,7 @@ def run_mode(args, mode: str, store, embedder, generator, dataset) -> tuple[list
     decline_pass = [r for r in decline_rows if r.get("decline_ok")]
     metrics = {
         "mode": mode,
+        "engine": engine,
         "cases_total": len(results),
         "cases_evidence": len(evidence_rows),
         "cases_decline": len(decline_rows),
@@ -184,6 +190,7 @@ def run_mode(args, mode: str, store, embedder, generator, dataset) -> tuple[list
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--mode", choices=["vector", "hybrid", "both"], default="both")
+    parser.add_argument("--engine", choices=["single", "agentic", "both"], default="both")
     parser.add_argument("--dataset", default=str(Path(__file__).parent / "dataset.json"))
     parser.add_argument("--out", default=str(Path(__file__).parent / "report"))
     args = parser.parse_args()
@@ -199,29 +206,28 @@ def main() -> int:
     )
 
     modes = ["vector", "hybrid"] if args.mode == "both" else [args.mode]
+    engines = ["single", "agentic"] if args.engine == "both" else [args.engine]
     all_metrics = []
     all_results = {}
     for mode in modes:
-        results, metrics = run_mode(args, mode, store, embedder, generator, dataset)
-        all_metrics.append(metrics)
-        all_results[mode] = results
+        for engine in engines:
+            results, metrics = run_mode(args, mode, engine, store, embedder, generator, dataset)
+            all_metrics.append(metrics)
+            all_results[f"{mode}-{engine}"] = results
 
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
     (out_dir / "metrics.json").write_text(json.dumps(all_metrics, ensure_ascii=False, indent=2), encoding="utf-8")
 
-    lines = ["# RAG 评估报告", "", f"- 测试数: {len(dataset)}（证据题/无证据拒绝题按模式统计）", "", "## 指标对比", "", "| 指标 | vector（基线） | hybrid |", "|---|---|---|"]
-    if len(all_metrics) == 2:
-        base, hyb = all_metrics
-        for key in ["cases_evidence", "cases_decline", "avg_faithfulness", "avg_coverage", "avg_relevance", "decline_pass_rate", "citation_valid_rate"]:
-            lines.append(f"| {key} | {base.get(key)} | {hyb.get(key)} |")
-    else:
-        m = all_metrics[0]
-        for key, v in m.items():
-            lines.append(f"| {key} | {v} |")
-    for mode in modes:
-        lines += ["", f"## 逐题明细（{mode}）", "", "| ID | 状态 | 引用 | 忠实度 | 覆盖 | 相关性 | 拒绝通过 |", "|---|---|---|---|---|---|---|"]
-        for r in all_results[mode]:
+    lines = ["# RAG 评估报告", "", f"- 测试数: {len(dataset)}（证据题/无证据拒绝题按组合统计）", "", "## 指标对比", ""]
+    header = ["| 指标 |"] + [f" {m['mode']}-{m['engine']} |" for m in all_metrics]
+    lines.append("".join(header))
+    lines.append("|" + "---|" * (len(all_metrics) + 1))
+    for key in ["cases_evidence", "cases_decline", "avg_faithfulness", "avg_coverage", "avg_relevance", "decline_pass_rate", "citation_valid_rate"]:
+        lines.append(f"| {key} | " + " | ".join(str(m.get(key)) for m in all_metrics) + " |")
+    for combo, results in all_results.items():
+        lines += ["", f"## 逐题明细（{combo}）", "", "| ID | 状态 | 引用 | 忠实度 | 覆盖 | 相关性 | 拒绝通过 |", "|---|---|---|---|---|---|---|"]
+        for r in results:
             lines.append(f"| {r['id']} | {r['status']} | {r['citations']} | {r.get('faithfulness', '-')} | {r.get('coverage', '-')} | {r.get('relevance', '-')} | {r.get('decline_ok', '-')} |")
     (out_dir / "report.md").write_text("\n".join(lines), encoding="utf-8")
     print("\n== 指标 ==")
