@@ -182,3 +182,9 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 
 - **报告解读"重新解读"功能**：POST /api/v1/reports/{id}/interpret（共享 ReportInterpretationService：查询+重试+解析，worker 与新端点共用）+ App 详情页"重新解读"按钮——解读缺失/过时时用户可自助重新生成。生产验证：重新生成 10014 摘要+2 发现+1 建议；冒烟 10/10。
 - 后端 106 全绿。
+
+## 自主改进循环 Round 16（2026-08-16）
+
+- **全矩阵回归绿**：后端 106 / AI 132 / Android 19 + 生产冒烟 10/10 + 评估冒烟（忠实度 1.0、引用 1.0）。CI 缓存生效（运行时长 ~5.5min 较之前 ~6.2min 提速）。
+- 备份 cron 持续工作（每日 03:10，报告文件 2.0M）。
+- 服务器稳定 17h+，健康巡检持续 OK。
