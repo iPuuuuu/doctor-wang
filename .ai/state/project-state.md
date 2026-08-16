@@ -196,3 +196,9 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 ## 自主改进循环 Round 18（2026-08-16）
 
 - **重新解读功能加固**：INTERPRETATION_FAILED 友好错误（502）+ 服务测试（写回/失败路径，后端 108/108）；已部署，冒烟 10/10。
+
+## 自主改进循环 Round 19（2026-08-16）
+
+- README 数字同步（后端 108）。
+- demo 账号聊天历史整理（删 128 条测试消息，各会话保留最近 10 条，演示更整洁）。
+- 冒烟 10/10、demo 账号 4 份 COMPLETED 报告状态良好。
