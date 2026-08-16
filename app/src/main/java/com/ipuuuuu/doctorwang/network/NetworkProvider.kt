@@ -35,6 +35,10 @@ class NetworkProvider @Inject constructor(
 
     private val okHttpClient = OkHttpClient.Builder()
         .addInterceptor(authInterceptor)
+        // AI 生成/自校正（生成→校验→回溯）耗时可达 60-90s，须与后端 readTimeoutMs=90000 对齐
+        .connectTimeout(15, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(120, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
     fun createApi(baseUrl: String): DoctorWangApi {

@@ -65,17 +65,20 @@ class OpenAICompatibleGenerationProvider:
 
     DEFAULT_SYSTEM_PROMPT = "只基于提供的来源回答；不能诊断。"
 
-    def generate(self, question: str, context: str, system_prompt: str | None = None) -> str:
+    def generate(self, question: str, context: str, system_prompt: str | None = None, max_tokens: int | None = None) -> str:
+        payload: dict = {
+            "model": self.model,
+            "temperature": 0,
+            "messages": [
+                {"role": "system", "content": system_prompt or self.DEFAULT_SYSTEM_PROMPT},
+                {"role": "user", "content": f"来源:\n{context}\n问题:{question}"},
+            ],
+        }
+        if max_tokens is not None:
+            payload["max_tokens"] = max_tokens
         body = _post_json(
             self.endpoint,
-            {
-                "model": self.model,
-                "temperature": 0,
-                "messages": [
-                    {"role": "system", "content": system_prompt or self.DEFAULT_SYSTEM_PROMPT},
-                    {"role": "user", "content": f"来源:\n{context}\n问题:{question}"},
-                ],
-            },
+            payload,
             self.api_key,
             self.timeout,
         )

@@ -12,11 +12,11 @@ import re
 VERIFY_SYSTEM = "你是严格的医疗 RAG 校验员。只输出合法 JSON，不要输出其他文字。"
 
 VERIFY_PROMPT = (
-    "请把下面的回答拆分为独立的陈述（事实性断言），并逐条判断是否被给出的上下文支持。\n"
-    "规则：上下文没有提到的内容、或与上下文矛盾的内容，都算【不支持】；\n"
-    "基于上下文的合理推断不算不支持；明显的边界声明（如'不能替代医生诊断'）不算陈述；\n共情、鼓励、安抚等情绪性语句（如'我理解你的担心'）也不算陈述。\n"
+    "请检查回答中是否存在【上下文不支持的陈述】（编造、与上下文矛盾、或上下文根本没提到的具体结论）。\n"
+    "规则：共情/鼓励/情绪语句不算；明显的边界声明（如'不能替代医生诊断'）不算；\n"
+    "基于上下文的合理推断不算。\n"
     f"上下文:\n{{context}}\n\n回答:\n{{answer}}\n\n"
-    "输出 JSON: {{\"claims\": [{{\"claim\": \"陈述原文\", \"supported\": true/false}}, ...]}}"
+    "输出 JSON: {{\"unsupported_claims\": [\"陈述1\", \"陈述2\"]}}，没有则输出空数组。最多列 3 条。"
 )
 
 CORRECT_PROMPT = (
@@ -39,24 +39,21 @@ def _extract_json(text: str) -> dict:
         return {}
 
 
-def verify_claims(generator, answer: str, context: str, max_claims: int = 12) -> dict:
-    """返回 {total, unsupported: [claim...], supported, score}；解析失败 total=0。"""
+def verify_claims(generator, answer: str, context: str, max_claims: int = 3) -> dict:
+    """返回 {unsupported: [claim...], ok}；judge 解析失败 ok=False（调用方决定透传/标记）。"""
     if not answer or not context:
-        return {"total": 0, "unsupported": [], "supported": 0, "score": None}
+        return {"unsupported": [], "ok": False}
     try:
         raw = generator.generate("请校验", VERIFY_PROMPT.format(context=context[:4000], answer=answer[:2000]),
-                                 system_prompt=VERIFY_SYSTEM)
+                                 system_prompt=VERIFY_SYSTEM, max_tokens=200)
     except Exception:
-        return {"total": 0, "unsupported": [], "supported": 0, "score": None}
+        return {"unsupported": [], "ok": False}
     data = _extract_json(raw)
-    claims = data.get("claims")
-    if not isinstance(claims, list) or not claims:
-        return {"total": 0, "unsupported": [], "supported": 0, "score": None}
-    claims = claims[:max_claims]
-    unsupported = [c.get("claim", "") for c in claims if c.get("supported") is not True and c.get("claim")]
-    supported = len(claims) - len(unsupported)
-    return {"total": len(claims), "unsupported": unsupported, "supported": supported,
-            "score": round(supported / len(claims), 3) if claims else None}
+    unsupported = data.get("unsupported_claims")
+    if not isinstance(unsupported, list):
+        return {"unsupported": [], "ok": False}
+    cleaned = [str(u).strip() for u in unsupported if str(u).strip()][:max_claims]
+    return {"unsupported": cleaned, "ok": True}
 
 
 def correction_prompt(question: str, context: str, unsupported: list[str]) -> str:

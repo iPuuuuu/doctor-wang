@@ -73,7 +73,7 @@ def _verify(state: AgenticRagState) -> dict:
     if judge is None:
         return {"unsupported": [], "verify_failed": True}
     result = verify_claims(judge, state.get("summary", ""), state.get("context", ""))
-    if result["total"] == 0:
+    if not result["ok"]:
         # judge 无法解析/失败：不阻塞，但标记需要人工复核（fail-closed 不假装已验证）
         return {"unsupported": [], "verify_failed": True}
     return {"unsupported": result["unsupported"], "verify_failed": False}

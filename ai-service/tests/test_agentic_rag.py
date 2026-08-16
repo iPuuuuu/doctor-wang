@@ -25,7 +25,7 @@ class _FakeJudge:
         self._rounds = list(rounds)
         self.calls = 0
 
-    def generate(self, question, context, system_prompt=None):
+    def generate(self, question, context, system_prompt=None, max_tokens=None):
         idx = min(self.calls, len(self._rounds) - 1)
         self.calls += 1
         return self._rounds[idx]
@@ -70,7 +70,7 @@ def _run(gen, judge, request=None):
 
 def test_no_correction_when_verified_clean():
     gen = _FakeGen("肝脏形态正常，未见占位性病变。")
-    judge = _FakeJudge(['{"claims": [{"claim": "肝脏形态正常", "supported": true}]}'])
+    judge = _FakeJudge(['{"unsupported_claims": []}'])
     resp = _run(gen, judge)
     assert resp.status == "OK"
     assert gen.calls == 1          # 一次生成，无需回溯
@@ -80,8 +80,8 @@ def test_no_correction_when_verified_clean():
 def test_corrects_when_unsupported_claim_found():
     gen = _FakeGen("肝脏形态正常。报告显示有肝肿瘤。", corrected_answer="肝脏形态正常，未见占位性病变。")
     judge = _FakeJudge([
-        '{"claims": [{"claim": "肝脏形态正常", "supported": true}, {"claim": "报告显示有肝肿瘤", "supported": false}]}',
-        '{"claims": [{"claim": "肝脏形态正常", "supported": true}]}',
+        '{"unsupported_claims": ["报告显示有肝肿瘤"]}',
+        '{"unsupported_claims": []}',
     ])
     resp = _run(gen, judge)
     assert gen.calls == 2          # 回溯重生成了一次
@@ -93,8 +93,8 @@ def test_corrects_when_unsupported_claim_found():
 def test_fail_closed_when_unsupported_remains_after_correction():
     gen = _FakeGen("肝脏正常。同时报告提示脑肿瘤风险。", corrected_answer="肝脏正常。同时报告提示脑肿瘤风险。")
     judge = _FakeJudge([
-        '{"claims": [{"claim": "肝脏正常", "supported": true}, {"claim": "报告提示脑肿瘤风险", "supported": false}]}',
-        '{"claims": [{"claim": "肝脏正常", "supported": true}, {"claim": "报告提示脑肿瘤风险", "supported": false}]}',
+        '{"unsupported_claims": ["报告提示脑肿瘤风险"]}',
+        '{"unsupported_claims": ["报告提示脑肿瘤风险"]}',
     ])
     resp = _run(gen, judge)
     assert resp.needsReview is True  # 重试后仍含未支持陈述 → 标记复核
