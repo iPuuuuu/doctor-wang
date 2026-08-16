@@ -65,3 +65,24 @@ def test_anxiety_mode_without_report_hits_insufficient_evidence():
     resp = query_rag(_request(), empty, FakeEmbeddingProvider(), gen)
     assert resp.status == "INSUFFICIENT_EVIDENCE"
     assert len(gen.calls) == 0
+
+
+def test_conversation_history_included_in_context():
+    """多轮历史应并入生成上下文（帮助省略式追问）。"""
+    seen = {}
+
+    class Gen:
+        def generate(self, question, context, system_prompt=None):
+            seen["context"] = context
+            return "好的。"
+
+    class Req:
+        requestId, userId, reportId, question = "r", 1, 2, "那胆红素呢？"
+        namespaceHints, topK, traceId, mode, healthProfile = ["report:1:2"], 5, "t", "general", ""
+        conversationHistory = "用户: 我的肝功能正常吗？\n助手: 转氨酶正常。\n用户: 那胆红素呢？"
+
+    store = _store_with_report()
+    resp = query_rag(Req(), store, FakeEmbeddingProvider(), Gen())
+    assert resp.status == "OK"
+    assert "对话历史" in seen["context"]
+    assert "胆红素" in seen["context"]

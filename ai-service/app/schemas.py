@@ -44,6 +44,8 @@ class RagRequest(BaseModel):
     # 安心话聊模式（疑病症/大病焦虑缓解）：后端传入用户健康档案摘要，提示词与安全边界不同
     mode: str = Field(default="general", pattern="^(general|anxiety)$")
     healthProfile: str = Field(default="", max_length=2000)
+    # 多轮对话上下文（最近若干条历史消息），提升追问连贯性；为空则忽略
+    conversationHistory: str = Field(default="", max_length=4000)
 
 
 class RagResponse(BaseModel):

@@ -61,7 +61,7 @@ def build_citations(request, hits) -> list[Citation]:
 
 
 def build_context(request, hits) -> str:
-    """生成阶段的上下文：报告片段（+ 安心话聊：健康档案、症状知识库）。"""
+    """生成阶段的上下文：报告片段（+ 安心话聊：健康档案、症状知识库）+ 多轮对话历史。"""
     citations = build_citations(request, hits)
     context = "\n".join(c.excerpt for c in citations)
     if request.mode == "anxiety":
@@ -70,6 +70,9 @@ def build_context(request, hits) -> str:
         if kb_context:
             # 受控症状知识库：常见良性解释 + 就医信号（非诊断、有版本、可追溯）
             context = f"{context}\n\n{kb_context}"
+    if getattr(request, "conversationHistory", ""):
+        # 多轮对话历史：帮助理解"那胆红素呢？"这类省略主语/指标的追问
+        context = f"{context}\n\n对话历史（仅用于理解上下文，回答仍以报告与档案为准）:\n{request.conversationHistory[:2000]}"
     return context
 
 

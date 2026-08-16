@@ -103,6 +103,7 @@ class ChatService(
                 namespaceHints = listOf("report:${user.id}:${latestReport.id}"),
                 mode = "anxiety",
                 healthProfile = healthProfile,
+                conversationHistory = recentConversation(user, "anxiety"),
                 traceId = TraceIdContext.get(),
             )
             val aiResponse = aiClient.query(request)
@@ -151,6 +152,7 @@ class ChatService(
                 question = message,
                 // namespace 契约 report:{数字 userId}:{reportId}（与 ingest 一致）；user.userId 是字符串标识，不可用于 namespace
                 namespaceHints = listOf("report:${user.id}:${latestReport.id}"),
+                conversationHistory = recentConversation(user, "general"),
                 traceId = TraceIdContext.get(),
             )
             val aiResponse = aiClient.query(request)
@@ -180,6 +182,15 @@ class ChatService(
     }
 
     // 面向用户：AI 不可用时给出诚实提示，不做关键词"假装回答"。
+    /** 取最近 6 条消息（不含本次）作为多轮上下文，格式化为可读文本。 */
+    private fun recentConversation(user: com.ipuuuuu.doctorwang.mock.persistence.entity.AppUserEntity, conversation: String): String {
+        return try {
+            chatMessageRepository.findAllByUserAndConversationOrderByCreatedAtAscIdAsc(user, conversation)
+                .asReversed().take(6).asReversed()
+                .joinToString("\n") { "${if (it.role == "user") "用户" else "助手"}: ${it.content.take(200)}" }
+        } catch (_: Exception) { "" }
+    }
+
     private fun mockReply(message: String, user: com.ipuuuuu.doctorwang.mock.persistence.entity.AppUserEntity): ChatResponse {
         return ChatResponse(
             message = "AI 健康助手暂时不可用，请稍后再试。如有不适请及时线下就医；如遇紧急症状请立即拨打 120。",
