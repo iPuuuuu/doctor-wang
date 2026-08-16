@@ -95,3 +95,11 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 - **AI 交互审计上线**（安全合规）：AiAuditEvent 表（V3 建表后一直空置）→ AiAuditService.record 接入问诊/安心话聊，生产实测 AI_CHAT 事件带 traceId/model/风险元数据。
 - **评估 v2**：优化后重跑 single vs agentic，忠实度 agentic +0.035（judge 方差分析已记录）。
 - 测试：后端 94（+4）、AI 124（+7）；全部推送，工作树干净；冒烟 10/10。
+
+## 自主改进循环 Round 2（2026-08-16）
+
+- **登录暴力破解防护**：账号级失败锁定（15 分钟窗口 5 次失败 → 锁定 15 分钟，成功清零），LOGIN_LOCKED → 429；生产实测 5 次失败后第 6 次被锁、正确密码也被拒。
+- **注册 IP 级限流**：IpThrottleService（1 小时 10 次/IP，nginx X-Real-IP），REGISTER_THROTTLED → 429；生产实测第 11 次被拒。
+- App 端错误透出链路确认：429/LOGIN_LOCKED 的友好消息会正常展示给用户。
+- 清理 23 个测试账号（DB 干净，4 用户）。
+- 测试：后端 101（+7）；全部推送。
