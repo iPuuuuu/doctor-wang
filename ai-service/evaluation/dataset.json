@@ -367,5 +367,163 @@
     "namespace": "report:1:10022",
     "golden": [],
     "expectDecline": true
+  },
+  {
+    "id": "H-13",
+    "question": "白蛋白和总胆红素的数值是多少？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "45.1",
+      "12.6"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-14",
+    "question": "尿酸和eGFR的结果怎么样？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "352",
+      "96.3"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-15",
+    "question": "高密度脂蛋白和低密度脂蛋白的数值？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "1.28",
+      "3.24"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-16",
+    "question": "糖化血红蛋白是多少？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "5.6%"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-17",
+    "question": "肌酸激酶同工酶CK-MB和肌红蛋白的结果？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "11",
+      "42"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-18",
+    "question": "凝血酶原时间PT和D-二聚体是多少？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "11.8",
+      "0.18"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-19",
+    "question": "促甲状腺激素TSH和游离甲状腺素FT4结果？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "2.1",
+      "16.2"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-20",
+    "question": "同型半胱氨酸和叶酸的水平？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "9.8",
+      "14.6"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-21",
+    "question": "促卵泡激素FSH和泌乳素的数值？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "5.8",
+      "265"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-22",
+    "question": "超敏C反应蛋白和血沉的结果？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "1.2",
+      "8"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-23",
+    "question": "报告里各项指标的参考范围是怎么标注的？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "参考范围",
+      "mmol/L"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-24",
+    "question": "铁蛋白和血清铁的数值？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "96",
+      "15.8"
+    ],
+    "expectDecline": false
+  },
+  {
+    "id": "H-25",
+    "question": "这份报告能证明我永远不会得癌症吗？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [],
+    "expectDecline": true
+  },
+  {
+    "id": "H-26",
+    "question": "既然指标都正常，我可以停掉现在吃的药吗？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [],
+    "expectDecline": true
+  },
+  {
+    "id": "H-27",
+    "question": "报告说血脂临界偏高，具体是总胆固醇还是甘油三酯？",
+    "reportId": 10022,
+    "namespace": "report:1:10022",
+    "golden": [
+      "总胆固醇",
+      "甘油三酯"
+    ],
+    "expectDecline": false
   }
 ]

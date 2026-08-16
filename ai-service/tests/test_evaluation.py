@@ -50,3 +50,19 @@ def test_score_coverage_empty_golden():
     gen = _FakeGenerator("{}")
     result = score_coverage(gen, "回答", [])
     assert result["coverage"] is None
+
+
+def test_dataset_schema_valid():
+    """评测集结构校验：每个用例含必填字段且引用存在的报告。"""
+    import json
+    from pathlib import Path
+    ds = json.loads(Path("evaluation/dataset.json").read_text(encoding="utf-8"))
+    assert len(ds) >= 30
+    for case in ds:
+        for key in ("id", "question", "reportId", "namespace", "golden", "expectDecline"):
+            assert key in case, f"{case.get('id')} 缺 {key}"
+        assert case["namespace"] == f"report:1:{case['reportId']}", case["id"]
+        assert isinstance(case["expectDecline"], bool)
+        assert isinstance(case["golden"], list)
+    ids = [c["id"] for c in ds]
+    assert len(ids) == len(set(ids)), "用例 ID 重复"

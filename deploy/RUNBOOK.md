@@ -118,6 +118,10 @@ curl -s -X POST https://your-domain.example/api/v1/chat/anxiety \
 - **日志**：`docker compose logs -f backend ai-service nginx`
 - **回滚**：保留上一版镜像 tag，`docker compose up -d --build` 前先 `docker tag` 旧镜像
 
+> ⚠️ **后端代码变更后必须先 `./gradlew bootJar` 再部署**（scp 新 jar → `cp` 到
+> `deploy/backend-app.jar` → `docker build` 重新打镜像 → `docker compose up -d backend`）。
+> 跳过 bootJar 会让 docker 复用旧 jar 缓存（实测踩坑两次，镜像 ID 不变即说明 jar 未更新）。
+
 ## 6.1 故障恢复（OOM 卡死，2026-08-14 事故）
 
 1.6GB 无 swap 的小内存 VPS 上，PostgreSQL + JVM + AI 服务并发时可能 OOM 整机挂起（症状：SSH `banner exchange` 超时、TCP 通但应用层无响应）。恢复步骤：
