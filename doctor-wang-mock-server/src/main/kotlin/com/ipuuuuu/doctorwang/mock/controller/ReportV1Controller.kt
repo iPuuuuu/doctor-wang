@@ -12,6 +12,8 @@ import org.springframework.http.MediaType
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.*
 import org.springframework.web.multipart.MultipartFile
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 
 @RestController
 @RequestMapping("/api/v1/reports")
@@ -37,9 +39,11 @@ class ReportV1Controller(private val service: ReportProcessingService) {
     @GetMapping("/{reportId}/file")
     fun downloadFile(@PathVariable reportId: Long): ResponseEntity<InputStreamResource> {
         val (stream, fileEntity) = service.getFile(reportId)
+        // RFC 5987：中文/特殊字符文件名用 filename* 编码，浏览器可正确保存原名
+        val encoded = URLEncoder.encode(fileEntity.originalFileName, StandardCharsets.UTF_8).replace("+", "%20")
         return ResponseEntity.ok()
             .contentType(MediaType.parseMediaType(fileEntity.mimeType))
-            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"${fileEntity.originalFileName}\"")
+            .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename*=UTF-8''$encoded")
             .contentLength(fileEntity.fileSize)
             .body(InputStreamResource(stream))
     }
