@@ -16,7 +16,8 @@ class InMemoryVectorStore:
     def __init__(self): self.records: dict[tuple[str, str], VectorRecord] = {}
 
     def upsert(self, records: list[VectorRecord]) -> None:
-        for record in records: self.records[(record.namespace, record.chunk_id)] = record
+        for record in records:
+            self.records[(record.namespace, record.chunk_id)] = record
 
     def delete_namespace(self, namespace: str) -> None:
         self.records = {key: value for key, value in self.records.items() if value.namespace != namespace}
@@ -26,19 +27,38 @@ class InMemoryVectorStore:
             return sum(a * b for a, b in zip(record.vector, query)) / ((sum(a*a for a in record.vector) ** .5 or 1) * (sum(a*a for a in query) ** .5 or 1))
         return sorted(((r, score(r)) for r in self.records.values() if r.namespace == namespace), key=lambda x: x[1], reverse=True)[:top_k]
 
+    def all_chunks(self, namespace: str) -> list[VectorRecord]:
+        return [r for r in self.records.values() if r.namespace == namespace]
+
 
 class PgVectorStore:
-    """pgvector adapter; the backend owns creation/migration of this table."""
-    def __init__(self, connection, table: str = "ai_vector_chunk"):
+    """pgvector adapter; the backend owns creation/migration of this table.
+
+    连接为单例；PostgreSQL 重启/断连时自动重连（每次操作前 ping，失败则用保存的
+    database_url 重建连接），避免断连后所有 AI 查询静默降级。
+    """
+    def __init__(self, connection, table: str = "ai_vector_chunk", database_url: str | None = None):
         if not table.replace("_", "").isalnum():
             raise ValueError("invalid vector table name")
-        self.connection, self.table = connection, table
+        self.connection, self.table, self.database_url = connection, table, database_url
+
+    def _ensure_connection(self):
+        """连接失效时用保存的 URL 重建（幂等、低开销）。"""
+        try:
+            with self.connection.cursor() as cursor:
+                cursor.execute("SELECT 1")
+        except Exception:
+            if not self.database_url:
+                raise
+            import psycopg
+            self.connection = psycopg.connect(self.database_url)
 
     def upsert(self, records: list[VectorRecord]) -> None:
         sql = f"""INSERT INTO {self.table} (namespace, chunk_id, content, embedding, metadata)
                   VALUES (%s, %s, %s, %s::vector, %s::jsonb)
                   ON CONFLICT (namespace, chunk_id) DO UPDATE SET content=EXCLUDED.content,
                   embedding=EXCLUDED.embedding, metadata=EXCLUDED.metadata"""
+        self._ensure_connection()
         import json
         with self.connection.cursor() as cursor:
             for record in records:
@@ -46,6 +66,7 @@ class PgVectorStore:
         self.connection.commit()
 
     def search(self, namespace: str, query: list[float], top_k: int = 5):
+        self._ensure_connection()
         sql = f"SELECT chunk_id, namespace, content, embedding <=> %s::vector AS distance, metadata FROM {self.table} WHERE namespace=%s ORDER BY embedding <=> %s::vector LIMIT %s"
         rows = []
         with self.connection.cursor() as cursor:
@@ -56,7 +77,7 @@ class PgVectorStore:
         return [(VectorRecord(row[0], row[1], [], row[2], row[4] if isinstance(row[4], dict) else json.loads(row[4])), 1 - float(row[3])) for row in rows]
 
     def all_chunks(self, namespace: str) -> list[VectorRecord]:
-        """返回 namespace 下全部 chunk（供混合检索的词法通道使用）。"""
+        self._ensure_connection()
         sql = f"SELECT chunk_id, namespace, content, metadata FROM {self.table} WHERE namespace=%s"
         with self.connection.cursor() as cursor:
             cursor.execute(sql, (namespace,))
@@ -65,6 +86,7 @@ class PgVectorStore:
         return [VectorRecord(row[0], row[1], [], row[2], row[3] if isinstance(row[3], dict) else json.loads(row[3])) for row in rows]
 
     def delete_namespace(self, namespace: str) -> None:
+        self._ensure_connection()
         with self.connection.cursor() as cursor:
             cursor.execute(f"DELETE FROM {self.table} WHERE namespace=%s", (namespace,))
         self.connection.commit()
@@ -84,5 +106,5 @@ def create_vector_store(database_url: str | None = None) -> InMemoryVectorStore 
     if database_url:
         import psycopg
         conn = psycopg.connect(database_url)
-        return PgVectorStore(conn, table="ai_vector_chunk")
+        return PgVectorStore(conn, table="ai_vector_chunk", database_url=database_url)
     return InMemoryVectorStore()

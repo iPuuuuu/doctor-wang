@@ -31,7 +31,7 @@ def test_upsert_uses_vector_and_jsonb_contract():
     store = PgVectorStore(conn, table="ai_vector_chunk")
     store.upsert([VectorRecord(chunk_id="c1", namespace="report:1:2", vector=[0.1, 0.2], text="片段", metadata={"page_no": 1, "confidence": 0.9})])
 
-    sql, params = conn.cursor_instance.executed[0]
+    sql, params = conn.cursor_instance.executed[-1]
     assert "INSERT INTO ai_vector_chunk (namespace, chunk_id, content, embedding, metadata)" in sql
     assert "ON CONFLICT (namespace, chunk_id) DO UPDATE" in sql
     assert "::vector" in sql and "::jsonb" in sql
@@ -46,7 +46,7 @@ def test_search_filters_namespace_and_orders_by_cosine_distance():
     store = PgVectorStore(conn, table="ai_vector_chunk")
     store.search(namespace="report:1:2", query=[0.5, 0.5], top_k=5)
 
-    sql, params = conn.cursor_instance.executed[0]
+    sql, params = conn.cursor_instance.executed[-1]
     assert "embedding <=> %s::vector" in sql
     assert "WHERE namespace=%s" in sql
     assert params[1] == "report:1:2"
@@ -56,7 +56,7 @@ def test_delete_namespace_scoped():
     conn = FakeConnection()
     store = PgVectorStore(conn, table="ai_vector_chunk")
     store.delete_namespace("report:1:2")
-    sql, params = conn.cursor_instance.executed[0]
+    sql, params = conn.cursor_instance.executed[-1]
     assert "DELETE FROM ai_vector_chunk WHERE namespace=%s" in sql
     assert params[0] == "report:1:2"
 
