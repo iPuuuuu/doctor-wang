@@ -142,3 +142,8 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 
 - **并发稳定性验证**：5 并发安心话聊全部 200（7-13s，单 worker 顺序处理，无错误无崩溃）；此前一次"400"系测试脚本 shell 转义把中文变 GBK 所致，非服务问题（已用文件 payload 复测确认）。
 - **导航/首页复核**：上传成功→详情跳转正确；BMI 计算有 height=0 边界（注册/更新有 30-250 校验，风险低）。
+
+## 自主改进循环 Round 9（2026-08-16）
+
+- **深色模式适配**：Material3 darkColorScheme（同色相暗色板）+ 安心话聊/登录/注册的 SoftTeal 背景改 theme-aware（isSystemInDarkTheme）；APK 已更新。
+- 后端日志审查：3h 内仅 5 条 GBK 解析警告（测试脚本所致），无其他 WARN/ERROR；AI 服务 0 异常。
