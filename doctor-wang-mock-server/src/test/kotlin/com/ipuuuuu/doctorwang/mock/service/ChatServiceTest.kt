@@ -21,6 +21,7 @@ import org.mockito.ArgumentMatchers.any
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import org.mockito.ArgumentCaptor
 import org.springframework.data.domain.PageImpl
 import java.time.OffsetDateTime
 
@@ -34,11 +35,12 @@ class ChatServiceTest {
     private val diseaseRepo = mock(HealthProfileDiseaseRepository::class.java)
     private val aiClient = mock(AiReportClient::class.java)
     private val props = AiServiceProperties(enabled = true, baseUrl = "http://ai:8000", internalToken = "t")
+    private val audit = mock(AiAuditService::class.java)
 
     private val user = AppUserEntity(id = 7, userId = "u7", account = "anxiety@test.local", passwordHash = "h",
         name = "安心", age = 32, height = 170, weight = 65f)
 
-    private fun service() = ChatService(chatRepo, reportRepo, diseaseRepo, aiClient, props)
+    private fun service() = ChatService(chatRepo, reportRepo, diseaseRepo, aiClient, props, audit)
 
     @BeforeEach
     fun setUp() { AuthContext.set(AuthenticatedUser("tok", "sid", user)) }
@@ -91,5 +93,30 @@ class ChatServiceTest {
 
         assertTrue(resp.message.contains("良性的"))
         assertTrue(resp.warnings.isNotEmpty())
+    }
+    @Test
+    fun `sendMessage records audit event with trace and metadata`() {
+        val report = MedicalReportEntity(id = 9, user = user, title = "体检", reportDate = "", reportType = "",
+            summary = "s", status = "COMPLETED")
+        doReturn(listOf(report)).`when`(reportRepo).findAllByUserOrderByCreatedAtDescIdDesc(user)
+        doReturn(emptyList<HealthProfileDiseaseEntity>()).`when`(diseaseRepo).findAllByUserOrderByIdAsc(user)
+        val response = com.ipuuuuu.doctorwang.mock.model.AiRagResponse(
+            requestId = "r", status = "OK", riskLevel = "LOW", summary = "基于报告的回答。",
+            citations = listOf(com.ipuuuuu.doctorwang.mock.model.AiCitation("report", "9", "c", 1, "片段", 0.9, "v1")),
+            traceId = "trace-123",
+        )
+        doReturn(response).`when`(aiClient).query(any(com.ipuuuuu.doctorwang.mock.model.AiRagRequest::class.java) ?: com.ipuuuuu.doctorwang.mock.model.AiRagRequest("r", 7, 9, "q", listOf("report:7:9"), traceId = "t"))
+
+        service().sendMessage("我的报告怎么样？")
+
+        verify(audit).record(
+            org.mockito.ArgumentMatchers.eq(user) ?: user,
+            org.mockito.ArgumentMatchers.eq("AI_CHAT") ?: "AI_CHAT",
+            org.mockito.ArgumentMatchers.eq("trace-123") ?: "trace-123",
+            org.mockito.ArgumentMatchers.any() ?: "v",
+            org.mockito.ArgumentMatchers.any() ?: "v",
+            org.mockito.ArgumentMatchers.any() ?: "v",
+            org.mockito.ArgumentMatchers.anyMap() ?: emptyMap(),
+        )
     }
 }

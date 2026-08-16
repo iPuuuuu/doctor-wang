@@ -22,6 +22,7 @@ class ChatService(
     private val healthProfileDiseaseRepository: HealthProfileDiseaseRepository,
     private val aiClient: AiReportClient,
     private val aiProps: AiServiceProperties,
+    private val audit: AiAuditService,
 ) {
     @Transactional(readOnly = true)
     fun getHistory(conversation: String = "general"): List<ChatMessageResponse> {
@@ -47,6 +48,11 @@ class ChatService(
         chatMessageRepository.save(
             ChatMessageEntity(user = user, role = "assistant", content = reply.message, conversation = "general"),
         )
+        audit.record(user = user, eventType = "AI_CHAT", traceId = reply.traceId ?: "none",
+            modelVersion = aiProps.sourceVersion,
+            metadata = mapOf("conversation" to "general", "mode" to "general",
+                "warnings" to reply.warnings.size, "citations" to reply.citations.size,
+                "aiEnabled" to aiProps.enabled))
         return reply
     }
 
@@ -65,6 +71,11 @@ class ChatService(
         chatMessageRepository.save(
             ChatMessageEntity(user = user, role = "assistant", content = reply.message, conversation = "anxiety"),
         )
+        audit.record(user = user, eventType = "AI_CHAT", traceId = reply.traceId ?: "none",
+            modelVersion = aiProps.sourceVersion,
+            metadata = mapOf("conversation" to "anxiety", "mode" to "anxiety",
+                "warnings" to reply.warnings.size, "citations" to reply.citations.size,
+                "aiEnabled" to aiProps.enabled))
         return reply
     }
 
