@@ -27,15 +27,15 @@ Doctor-Wang is an AI-powered personal health assistant. The system ingests medic
                            │ HTTP (internal)
                            ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                 Spring Boot Backend (Kotlin/JVM 17)          │
+│                 Spring Boot Backend (Kotlin/JVM 21)          │
 │  ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌───────────────┐  │
 │  │   Auth   │ │  Report  │ │   Chat   │ │    Profile    │  │
 │  │ Service  │ │  Service │ │  Service │ │    Service    │  │
 │  └────┬─────┘ └────┬─────┘ └────┬─────┘ └───────┬───────┘  │
 │       │            │            │               │           │
 │  ┌────┴────────────┴────────────┴───────────────┴────────┐  │
-│  │              PostgreSQL (16 tables, Flyway V1-V8)      │  │
-│  │              pgvector extension (1536-dim HNSW)         │  │
+│  │              PostgreSQL (Flyway V1-V11)      │  │
+│  │              pgvector extension (embedding vector(2048)；维度超 HNSW 2000 上限，无 ANN 索引，小数据量顺序扫描）         │  │
 │  └────────────────────────────────────────────────────────┘  │
 │                           │                                  │
 │              X-Internal-Token (service auth)                 │
@@ -272,3 +272,15 @@ See [.ai/decisions/](/ai/decisions/) for full ADRs:
 | Android Tests | NOT_RUN (no SDK) | Deferred to SDK-capable environment |
 | Integration Tests | NOT_RUN (no Docker) | Deferred to Docker-capable CI |
 | TLS | Nginx config exists, not smoke-tested | Deferred to Docker Compose environment |
+
+---
+
+## 附：AI 服务当前能力（2026-08-16）
+
+- **检索**：混合检索（字符二元组词法 + pgvector 向量，RRF 融合）；词法通道对检查术语/数值有强召回。
+- **生成**：自校正 Agentic RAG（LangGraph：retrieve→generate→verify→backtrack，声明级忠实度校验，
+  未支持陈述 fail-closed 标记 needsReview）；安心话聊专用提示词 + 症状自查知识库（SYMPTOM-KB-1.0）。
+- **多轮**：最近 6 条会话历史并入生成上下文（省略式追问可衔接）。
+- **评估**：52 题 RAGAS 风格评测（DeepSeek judge，忠实度/覆盖/相关性/拒绝正确率）+ 5 题冒烟回归集 +
+  报告解读专项抽查。报告见 `docs/evaluation.md`。
+- **运维**：provider 配置状态 healthz、PG 连接自动重连、ingest job 元数据 30 天清理。
