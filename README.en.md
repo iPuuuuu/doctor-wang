@@ -52,6 +52,14 @@ Android (Kotlin+Compose) ──HTTPS──▶ Spring Boot ──internal──�
 | Health archive | History, biometrics, BMI overview |
 | Auth & security | JWT (HS256) with **server-side revocable sessions**, BCrypt, per-user namespace isolation, no sensitive logging, file magic-number + MIME validation |
 
+## Security
+
+- **Auth**: JWT (HS256) with server-side revocable sessions; BCrypt password hashing; server-side validation bounds for profile fields.
+- **Abuse protection**: account-level login lockout (5 fails / 15 min → 429), IP-level register throttle (10/hour), idempotency-keyed upload dedup.
+- **AI safety**: fail-closed pipeline (high-risk triage → emergency routing), citation-traceable RAG with `AiSafetyGate` validation, honest no-evidence decline, self-correcting generation with claim-level verification, AI interaction audit trail (`ai_audit_event`).
+- **Files**: MIME + magic-number validation, size caps, per-user namespace isolation, report deletion cascades (incl. vector indexes).
+- **Privacy**: account deletion endpoint (reports, files, vectors, history removed), no sensitive data in logs, de-identified test data only.
+
 ## Engineering quality
 
 - **Tests**: backend 105 · AI 132 · Android 19 — all green locally and in CI.
