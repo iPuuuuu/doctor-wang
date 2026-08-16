@@ -109,3 +109,10 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 - **账号注销（隐私合规）**：DELETE /api/account（需登录）→ 删报告磁盘文件 + 尽力清理向量索引 + 用户行级联删除；App 设置页新增"注销账号"（红色、二次确认、错误提示）。生产实测：注册→注销 204→再登录 401。App 编译通过，APK 已更新。
 - **README 测试数字刷新**（后端 101 / AI 124 / Android 19）。
 - 教训记录：后端代码变更后必须先 bootJar 再部署（本轮踩了两次旧 jar 坑，已修复）。
+
+## 自主改进循环 Round 4（2026-08-16）
+
+- **上传幂等验证**：同一文件同一 Idempotency-Key 双传 → 同一 reportId（生产实测 dedup 生效，App 双击不会产生重复报告）。
+- **ai-service DB 连接自动重连**：PgVectorStore 单例连接断连后自动重建（此前 PG 重启会让所有 AI 查询静默降级直到容器重启）；3 新测试（AI 127/127）。
+- **评测集扩到 52 题**（新增数值/边界/拒绝类 15 题）+ 数据集结构校验测试；52 题双引擎评估后台运行中。
+- RUNBOOK 补"后端变更须先 bootJar"警示（防旧 jar 部署复发）。
