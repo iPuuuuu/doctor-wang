@@ -166,3 +166,9 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 - **CI 缓存**：Gradle + pip 缓存启用（加速 CI 运行）。
 - **多轮历史回归测试**：ChatServiceTest 断言 AiRagRequest.conversationHistory 携带最近对话（后端 106/106）。
 - 连接池复核：Hikari 默认 10 vs PG max_connections 50，余量充足无需调整。
+
+## 自主改进循环 Round 13（2026-08-16）
+
+- **TLS 关键验证（真机可用性红线）**：① debug manifest 的 networkSecurityConfig 正确合并（自签证书信任生效，此前误判为缺失）；② APK 内置 server_cert.pem 指纹与服务器当前证书完全一致——**App 真机可直连服务器**。
+- **README 增补安全章节**（认证/防滥用/AI 安全/文件/隐私）。
+- 索引复核：chat/report/job 查询索引覆盖充分，当前规模无需新增。
