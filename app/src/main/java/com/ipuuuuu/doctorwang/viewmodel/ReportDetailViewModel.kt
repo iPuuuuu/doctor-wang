@@ -185,6 +185,7 @@ class ReportDetailViewModel @Inject constructor(
 
     private companion object {
         const val STATUS_POLL_INTERVAL_MS = 2_000L
-        const val MAX_STATUS_POLL_ATTEMPTS = 5
+        // OCR 图片报告处理可达 5-30s，轮询 30s 覆盖绝大多数情况
+        const val MAX_STATUS_POLL_ATTEMPTS = 15
     }
 }
