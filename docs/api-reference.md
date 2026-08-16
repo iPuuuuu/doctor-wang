@@ -14,7 +14,7 @@ Login with account + password.
 
 **Request:** `{"account": "demo@doctorwang.app", "password": "123456"}`
 **Response 200:** `{"token": "jwt...", "userId": "u1001"}`
-**Errors:** 400 (empty fields), 401 (AUTHENTICATION_FAILED)
+**Errors:** 400 (empty fields), 401 (AUTHENTICATION_FAILED), 429 (LOGIN_LOCKED 暴力破解临时锁定)
 
 ### POST /api/register
 Register new account. Auto-login on success.
@@ -41,6 +41,12 @@ Partial update. Only non-null fields are updated.
 
 ### GET /api/health/profile
 Same response shape as GET /api/profile. Includes disease and record history.
+
+### DELETE /api/account
+注销当前账号（永久删除：健康档案、全部报告、聊天记录、会话；报告原文件与向量索引一并清理）。不可恢复。
+
+**Response 204:** no content
+**Errors:** 401 (未登录)
 
 ### POST /api/password/change
 **Request:** `{"oldPassword": "current", "newPassword": "newpass123"}`
