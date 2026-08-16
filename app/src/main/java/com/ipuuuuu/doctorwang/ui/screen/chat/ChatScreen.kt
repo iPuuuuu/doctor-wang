@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
@@ -35,6 +36,14 @@ fun ChatScreen(
     viewModel: ChatViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
+
+    val listState = rememberLazyListState()
+    // 新消息到达时自动滚动到底部（含 AI 回复）
+    LaunchedEffect(uiState.messages.size) {
+        if (uiState.messages.isNotEmpty()) {
+            listState.animateScrollToItem(uiState.messages.lastIndex)
+        }
+    }
 
     LaunchedEffect(uiState.sessionExpired) {
         if (uiState.sessionExpired) onSessionExpired()
@@ -98,6 +107,7 @@ fun ChatScreen(
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
