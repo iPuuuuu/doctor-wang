@@ -1,8 +1,8 @@
 # Doctor-Wang · Personal Health Archive & AI Health Assistant
 
 [![CI](https://github.com/iPuuuuu/doctor-wang/actions/workflows/ci.yml/badge.svg)](https://github.com/iPuuuuu/doctor-wang/actions/workflows/ci.yml)
-[![Tests: backend](https://img.shields.io/badge/backend_tests-90-green)](./doctor-wang-mock-server)
-[![Tests: ai](https://img.shields.io/badge/ai_tests-117-green)](./ai-service)
+[![Tests: backend](https://img.shields.io/badge/backend_tests-101-green)](./doctor-wang-mock-server)
+[![Tests: ai](https://img.shields.io/badge/ai_tests-124-green)](./ai-service)
 [![Tests: android](https://img.shields.io/badge/android_tests-19-green)](./app)
 [![Stack](https://img.shields.io/badge/stack-Android%20%7C%20Spring%20Boot%20%7C%20FastAPI%20%7C%20PostgreSQL%20pgvector-blue)](.)
 
@@ -54,7 +54,7 @@ Android (Kotlin+Compose) ──HTTPS──▶ Spring Boot ──internal──�
 
 ## Engineering quality
 
-- **Tests**: backend 90 · AI 117 · Android 19 — all green locally and in CI.
+- **Tests**: backend 101 · AI 124 · Android 19 — all green locally and in CI.
 - **CI (GitHub Actions)**: Android build, backend JDK 21 tests, **PostgreSQL/Testcontainers integration matrix**, AI pytest, whitespace gate.
 - **RAG evaluation**: `ai-service/evaluation/` — 37-case medical QA set (evidence Q&A + no-evidence decline), RAGAS-style metrics via LLM-judge, `vector vs hybrid` comparison report (`docs/evaluation.md`).
 - **Database**: Flyway V1–V11, pgvector columns, chat session separation, no destructive migrations.
