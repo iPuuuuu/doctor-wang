@@ -152,3 +152,7 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 
 - **报告解读专项评估**（新）：解读管线 → LLM-judge（摘要忠实/发现可溯源/建议安全）。过程中发现并修复两个真实问题：① LLM 格式遵从波动（偶发不输出三段式）→ 后端 interpret() 加"空发现/建议时重试一次"（已上线）；② judge 校准（截断/标准过严导致误判，人工复核确认为误判）。结论：解读内容事实质量高（人工核对通过），建议安全率 1.0，小样本 judge 分数如实标注局限。
 - 附带发现：**ai-service 存在 site-packages 旧代码副本**（镜像构建时的 pip install），运行中的 uvicorn 实际使用 /app/app 新代码（healthz providers + 多轮 + 延迟实测佐证）；但调试脚本若不显式 insert /app 会导入旧副本——评估脚本均有正确 insert，结果可信。
+
+## 自主改进循环 Round 11（2026-08-16）
+
+- **ai-service 双副本隐患根治**：删除镜像遗留的 site-packages/app 旧副本 + 容器内加 /app .pth + Dockerfile 改 editable 安装（pip install -e .）——从此任何 Python 进程（uvicorn/评估/调试脚本）都解析到 /app/app 单一事实源；决定性验证：删旧副本重启后 uvicorn 仍提供新 healthz，冒烟 10/10。
