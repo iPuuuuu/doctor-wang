@@ -156,3 +156,7 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 ## 自主改进循环 Round 11（2026-08-16）
 
 - **ai-service 双副本隐患根治**：删除镜像遗留的 site-packages/app 旧副本 + 容器内加 /app .pth + Dockerfile 改 editable 安装（pip install -e .）——从此任何 Python 进程（uvicorn/评估/调试脚本）都解析到 /app/app 单一事实源；决定性验证：删旧副本重启后 uvicorn 仍提供新 healthz，冒烟 10/10。
+
+## 自主改进循环 Round 11 补充
+
+- **轻量评估冒烟集**（5 题/2 分钟）：日常回归工具，本次实测 agentic 忠实度 1.0、拒绝 1.0、引用 1.0。
