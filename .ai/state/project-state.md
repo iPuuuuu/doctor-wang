@@ -131,3 +131,9 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 
 - **多轮对话上下文**：RagRequest/AiRagRequest 新增 conversationHistory；ChatService 传最近 6 条消息；rag.py 并入生成上下文。生产验证：追问"那转氨酶和胆红素具体多少？"（省略主语）正确衔接上文给出具体数值。后端 103 / AI 128 全绿。
 - **报告详情状态轮询 10s→30s**（覆盖 OCR 图片报告 5-30s 处理），APK 已更新。
+
+## 自主改进循环 Round 7（2026-08-16）
+
+- **注销契约测试**：DELETE /api/account 401（无 token）+ 204（有效会话）→ 后端 105/105。
+- **ai-service healthz 增强**：返回 providers（llm/embedding/ocr 配置状态）+ vectorStore 后端（运维可观测，零网络开销）；生产验证 3 provider 全配。
+- 复核 App 注册/资料编辑校验与后端边界一致。
