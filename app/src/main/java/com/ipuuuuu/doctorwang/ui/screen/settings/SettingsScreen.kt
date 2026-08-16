@@ -53,6 +53,11 @@ fun SettingsScreen(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         Text(text = "账号设置", style = MaterialTheme.typography.headlineSmall)
+        Text(
+            text = "版本 ${com.ipuuuuu.doctorwang.BuildConfig.VERSION_NAME} · ${com.ipuuuuu.doctorwang.BuildConfig.SERVER_ENVIRONMENT_LABEL}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
 
         Button(
             onClick = { showPasswordDialog = true },
