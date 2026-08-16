@@ -75,6 +75,8 @@ def ingest(request: IngestionRequest, x_internal_token: str | None = Header(defa
     # prompts, tokens, or credentials in job state.
     payload["request"] = request.model_dump(exclude={"fileBase64"})
     job_repo.save(job_id, payload)
+    # 低频清理：每次 ingest 顺带删除超过 30 天的 job 元数据，防 sqlite 无限增长
+    job_repo.delete_older_than(30)
     return IngestionResponse(jobId=job_id, status=payload["status"])
 
 

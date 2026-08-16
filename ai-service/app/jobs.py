@@ -1,7 +1,7 @@
 import json
 import os
 import sqlite3
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 
 class JobRepository:
@@ -23,3 +23,10 @@ class JobRepository:
         with self._connect() as connection:
             row = connection.execute("SELECT payload FROM ai_jobs WHERE job_id=?", (job_id,)).fetchone()
         return json.loads(row[0]) if row else None
+
+    def delete_older_than(self, days: int = 30) -> int:
+        """清理超过 days 天未更新的 job（仅元数据，不含报告内容），防止 sqlite 无限增长。"""
+        cutoff = (datetime.now(timezone.utc) - timedelta(days=days)).isoformat()
+        with self._connect() as connection:
+            cursor = connection.execute("DELETE FROM ai_jobs WHERE updated_at < ?", (cutoff,))
+        return cursor.rowcount
