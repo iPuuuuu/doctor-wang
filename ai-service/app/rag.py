@@ -2,6 +2,7 @@ from .embeddings import EmbeddingProvider
 from .hybrid import hybrid_rank, lexical_score
 from .schemas import Citation, RagResponse
 from .safety import risk_triage
+from .symptom_kb import symptom_kb_context
 
 # 安心话聊（疑病症/大病焦虑）专用系统提示词：
 # 结合用户真实健康档案与检查报告，缓解对重大疾病的过度担忧，
@@ -62,7 +63,11 @@ def query_rag(request, store, embedder: EmbeddingProvider, generator=None, searc
         try:
             context = "\n".join(c.excerpt for c in citations)
             if request.mode == "anxiety":
+                kb_context, _ = symptom_kb_context(request.question)
                 context = f"用户健康档案:\n{request.healthProfile or '（未提供）'}\n\n报告片段:\n{context}"
+                if kb_context:
+                    # 受控症状知识库：常见良性解释 + 就医信号（非诊断、有版本、可追溯）
+                    context = f"{context}\n\n{kb_context}"
                 summary = generator.generate(request.question, context, system_prompt=ANXIETY_SYSTEM_PROMPT)
             else:
                 summary = generator.generate(request.question, context)
