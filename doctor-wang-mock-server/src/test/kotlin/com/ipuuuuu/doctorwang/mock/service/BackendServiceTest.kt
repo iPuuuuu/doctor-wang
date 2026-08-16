@@ -42,6 +42,7 @@ class BackendServiceTest {
         userSessionRepository = userSessionRepository,
         healthProfileDiseaseRepository = mock(HealthProfileDiseaseRepository::class.java),
         healthProfileRecordRepository = mock(HealthProfileRecordRepository::class.java),
+        loginThrottle = LoginThrottleService(),
     )
 
     @Test

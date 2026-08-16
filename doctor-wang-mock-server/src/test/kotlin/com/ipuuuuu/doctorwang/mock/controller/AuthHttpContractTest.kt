@@ -11,6 +11,7 @@ import com.ipuuuuu.doctorwang.mock.persistence.entity.UserSessionEntity
 import com.ipuuuuu.doctorwang.mock.persistence.repository.UserSessionRepository
 import com.ipuuuuu.doctorwang.mock.service.BackendService
 import com.ipuuuuu.doctorwang.mock.service.JwtTokenService
+import com.ipuuuuu.doctorwang.mock.service.LoginThrottleService
 import com.ipuuuuu.doctorwang.mock.service.PasswordHasher
 import com.ipuuuuu.doctorwang.mock.persistence.repository.AppUserRepository
 import com.ipuuuuu.doctorwang.mock.persistence.repository.HealthProfileDiseaseRepository
@@ -339,6 +340,7 @@ class AuthHttpContractTest {
     private fun realBackend(sessions: StatefulSessions, tokens: JwtTokenService): BackendService = BackendService(
         PasswordHasher(), tokens, mock(AppUserRepository::class.java), sessions.repository,
         mock(HealthProfileDiseaseRepository::class.java), mock(HealthProfileRecordRepository::class.java),
+        LoginThrottleService(),
     )
 
     private data class StatefulSessions(val repository: UserSessionRepository, val state: MutableMap<String, UserSessionEntity>) {

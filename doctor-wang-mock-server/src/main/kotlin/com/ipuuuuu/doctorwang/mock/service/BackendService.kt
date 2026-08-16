@@ -23,14 +23,24 @@ class BackendService(
     private val userSessionRepository: UserSessionRepository,
     private val healthProfileDiseaseRepository: HealthProfileDiseaseRepository,
     private val healthProfileRecordRepository: HealthProfileRecordRepository,
+    private val loginThrottle: LoginThrottleService,
 ) {
     @Transactional
     fun login(account: String, password: String): LoginResponse {
-        val user = appUserRepository.findByAccount(account.trim())
-            ?: throw ApiException("AUTHENTICATION_FAILED", "账号或密码错误")
+        val normalized = account.trim()
+        if (loginThrottle.isLocked(normalized)) {
+            throw ApiException("LOGIN_LOCKED", "尝试次数过多，账号已临时锁定，请 15 分钟后再试")
+        }
+        val user = appUserRepository.findByAccount(normalized)
+            ?: run {
+                loginThrottle.recordFailure(normalized)
+                throw ApiException("AUTHENTICATION_FAILED", "账号或密码错误")
+            }
         if (!passwordHasher.matches(password, user.passwordHash)) {
+            loginThrottle.recordFailure(normalized)
             throw ApiException("AUTHENTICATION_FAILED", "账号或密码错误")
         }
+        loginThrottle.clear(normalized)
 
         val (token, jwt) = jwtTokenService.issue(user.userId, user.id)
         userSessionRepository.save(
