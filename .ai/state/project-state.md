@@ -177,3 +177,8 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 
 - **App 设置页显示版本 + 环境标签**（用户可确认安装版本），APK 已更新。
 - **架构文档刷新**：JVM 17→21、Flyway V1-V8→V1-V11、1536 维 HNSW→2048 维无 ANN（超 HNSW 上限，说明取舍）、新增 AI 服务当前能力附录（混合检索/自校正/多轮/评估/运维）。
+
+## 自主改进循环 Round 15（2026-08-16）
+
+- **报告解读"重新解读"功能**：POST /api/v1/reports/{id}/interpret（共享 ReportInterpretationService：查询+重试+解析，worker 与新端点共用）+ App 详情页"重新解读"按钮——解读缺失/过时时用户可自助重新生成。生产验证：重新生成 10014 摘要+2 发现+1 建议；冒烟 10/10。
+- 后端 106 全绿。
