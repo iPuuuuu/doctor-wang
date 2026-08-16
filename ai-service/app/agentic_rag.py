@@ -88,13 +88,19 @@ def _route_after_verify(state: AgenticRagState) -> str:
 
 
 def _correct(state: AgenticRagState) -> dict:
-    """用修正提示词重生成（同一上下文），并记录本轮未支持声明。"""
+    """用修正提示词重生成（同一上下文），并记录本轮未支持声明。
+
+    保留与原生成一致的 system prompt（anxiety 专用提示词 / 提供方默认），
+    避免修正版丢失共情与医疗边界指导。
+    """
     request = state["request"]
+    from .rag import ANXIETY_SYSTEM_PROMPT
+    system_prompt = ANXIETY_SYSTEM_PROMPT if request.mode == "anxiety" else None
     try:
         summary = state["generator"].generate(
             request.question,
             correction_prompt(request.question, state.get("context", ""), state.get("unsupported", [])),
-            system_prompt=None,
+            system_prompt=system_prompt,
         )
     except Exception:
         summary = state.get("summary", "")
