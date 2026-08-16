@@ -62,6 +62,10 @@ class RemoteDoctorWangRepository @Inject constructor(
         }
     }
 
+    override suspend fun deleteAccount(): Result<Unit> {
+        return networkCall { api().deleteAccount() }
+    }
+
     override suspend fun logout() {
         try {
             // Revoke the server-side JTI when reachable. Local cleanup is

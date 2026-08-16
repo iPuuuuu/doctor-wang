@@ -5,10 +5,12 @@ import com.ipuuuuu.doctorwang.mock.model.LoginResponse
 import com.ipuuuuu.doctorwang.mock.model.PasswordChangeRequest
 import com.ipuuuuu.doctorwang.mock.model.RegisterRequest
 import com.ipuuuuu.doctorwang.mock.config.ApiException
+import com.ipuuuuu.doctorwang.mock.service.AccountService
 import com.ipuuuuu.doctorwang.mock.service.BackendService
 import com.ipuuuuu.doctorwang.mock.service.IpThrottleService
 import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.PostMapping
+import org.springframework.web.bind.annotation.DeleteMapping
 import org.springframework.web.bind.annotation.RequestBody
 import org.springframework.web.bind.annotation.RequestHeader
 import org.springframework.web.bind.annotation.RequestMapping
@@ -19,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController
 class AuthController(
     private val backendService: BackendService,
     private val ipThrottle: IpThrottleService,
+    private val accountService: AccountService,
 ) {
     @PostMapping("/login")
     fun login(@RequestBody request: LoginRequest): LoginResponse {
@@ -45,6 +48,12 @@ class AuthController(
     fun changePassword(@RequestBody request: PasswordChangeRequest): ResponseEntity<Void> {
         require(request.oldPassword.isNotBlank() && request.newPassword.isNotBlank()) { "密码不能为空" }
         backendService.changePassword(request.oldPassword, request.newPassword)
+        return ResponseEntity.noContent().build()
+    }
+
+    @DeleteMapping("/account")
+    fun deleteAccount(): ResponseEntity<Void> {
+        accountService.deleteAccount()
         return ResponseEntity.noContent().build()
     }
 

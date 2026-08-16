@@ -34,6 +34,7 @@ fun SettingsScreen(
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
     val passwordUiState = passwordViewModel.uiState.collectAsStateWithLifecycle().value
     var showPasswordDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
 
     LaunchedEffect(uiState.loggedOut) {
         if (uiState.loggedOut) onLoggedOut()
@@ -63,9 +64,24 @@ fun SettingsScreen(
         Button(
             onClick = viewModel::logout,
             modifier = Modifier.fillMaxWidth(),
-            enabled = !uiState.isLoggingOut,
+            enabled = !uiState.isLoggingOut && !uiState.isDeleting,
         ) {
             Text(if (uiState.isLoggingOut) "退出中..." else "退出登录")
+        }
+
+        uiState.deleteError?.let {
+            Text(text = it, color = MaterialTheme.colorScheme.error)
+        }
+
+        TextButton(
+            onClick = { showDeleteDialog = true },
+            modifier = Modifier.fillMaxWidth(),
+            enabled = !uiState.isDeleting && !uiState.isLoggingOut,
+        ) {
+            Text(
+                text = if (uiState.isDeleting) "注销中..." else "注销账号",
+                color = MaterialTheme.colorScheme.error,
+            )
         }
     }
 
@@ -113,6 +129,38 @@ fun SettingsScreen(
                 TextButton(
                     onClick = { showPasswordDialog = false },
                     enabled = !passwordUiState.isLoading,
+                ) {
+                    Text("取消")
+                }
+            },
+        )
+    }
+
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { if (!uiState.isDeleting) showDeleteDialog = false },
+            title = { Text("注销账号") },
+            text = {
+                Text(
+                    "注销后您的账号、健康档案、全部报告和聊天记录将被永久删除，且无法恢复。确定要注销吗？",
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        viewModel.deleteAccount()
+                    },
+                    enabled = !uiState.isDeleting,
+                ) {
+                    Text("确认注销", color = MaterialTheme.colorScheme.error)
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false },
+                    enabled = !uiState.isDeleting,
                 ) {
                     Text("取消")
                 }

@@ -170,6 +170,9 @@ interface DoctorWangApi {
     @POST("/api/logout")
     suspend fun logout()
 
+    @retrofit2.http.DELETE("/api/account")
+    suspend fun deleteAccount()
+
     @POST("/api/register")
     suspend fun register(@Body request: RegisterRequest): LoginResponse
 

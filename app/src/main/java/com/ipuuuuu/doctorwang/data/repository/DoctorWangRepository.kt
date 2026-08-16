@@ -17,6 +17,7 @@ interface DoctorWangRepository {
     suspend fun login(account: String, password: String): Result<Unit>
     suspend fun register(account: String, password: String, name: String, age: Int, height: Int, weight: Float): Result<Unit>
     suspend fun logout()
+    suspend fun deleteAccount(): Result<Unit>
     suspend fun clearSession()
     suspend fun getProfile(): UserProfile
     suspend fun updateProfile(name: String?, age: Int?, height: Int?, weight: Float?): Result<UserProfile>
