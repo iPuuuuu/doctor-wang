@@ -126,3 +126,8 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 - **下载文件名 RFC 5987 编码**（浏览器中文名正确），生产验证。
 - **上传幂等验证**：同文件同 Key 双传 → 同 reportId。
 - API 文档补 DELETE /api/account 与 429。
+
+## 自主改进循环 Round 6（2026-08-16）
+
+- **多轮对话上下文**：RagRequest/AiRagRequest 新增 conversationHistory；ChatService 传最近 6 条消息；rag.py 并入生成上下文。生产验证：追问"那转氨酶和胆红素具体多少？"（省略主语）正确衔接上文给出具体数值。后端 103 / AI 128 全绿。
+- **报告详情状态轮询 10s→30s**（覆盖 OCR 图片报告 5-30s 处理），APK 已更新。
