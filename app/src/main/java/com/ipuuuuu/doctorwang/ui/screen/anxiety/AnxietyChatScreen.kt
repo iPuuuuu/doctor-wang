@@ -34,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.ipuuuuu.doctorwang.ui.component.MessageBubble
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.ipuuuuu.doctorwang.ui.theme.DarkSoftTeal
 import com.ipuuuuu.doctorwang.ui.theme.SoftTeal
 import com.ipuuuuu.doctorwang.viewmodel.AnxietyChatViewModel
 
@@ -156,7 +158,7 @@ fun AnxietyChatScreen(
 private fun WelcomeAnxietyCard() {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = SoftTeal),
+        colors = CardDefaults.cardColors(containerColor = if (isSystemInDarkTheme()) DarkSoftTeal else SoftTeal),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),

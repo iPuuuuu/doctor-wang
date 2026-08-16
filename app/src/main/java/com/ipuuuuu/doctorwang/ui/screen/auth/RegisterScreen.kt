@@ -26,7 +26,11 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.ipuuuuu.doctorwang.ui.theme.DarkSoftTeal
 import com.ipuuuuu.doctorwang.ui.theme.SoftTeal
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.ipuuuuu.doctorwang.ui.theme.DarkSoftTeal
 import com.ipuuuuu.doctorwang.ui.theme.SoftTeal
 import com.ipuuuuu.doctorwang.viewmodel.RegisterViewModel
 
@@ -45,7 +49,7 @@ fun RegisterScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SoftTeal)
+            .background(if (isSystemInDarkTheme()) DarkSoftTeal else SoftTeal)
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 20.dp, vertical = 24.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),

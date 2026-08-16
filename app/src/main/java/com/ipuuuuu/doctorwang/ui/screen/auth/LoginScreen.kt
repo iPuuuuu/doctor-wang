@@ -27,6 +27,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.foundation.isSystemInDarkTheme
+import com.ipuuuuu.doctorwang.ui.theme.DarkSoftTeal
 import com.ipuuuuu.doctorwang.ui.theme.SoftTeal
 import com.ipuuuuu.doctorwang.viewmodel.LoginViewModel
 
@@ -45,7 +47,7 @@ fun LoginScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(SoftTeal)
+            .background(if (isSystemInDarkTheme()) DarkSoftTeal else SoftTeal)
             .padding(horizontal = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
