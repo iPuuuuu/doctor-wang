@@ -85,3 +85,13 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
   - Android: `DoctorWangApi.kt` (+register, +updateProfile, +changePassword, +listReports, +downloadReportFile, +DTOs)
 - No Flyway migration needed (schema already supports all operations).
 - Known limitations: Chat still uses mock keyword-based replies (AI Service integration deferred to RAG/Agent phase); Account deletion not yet implemented; No pagination enforcement on empty report list; File download not yet tested with large binaries.
+
+## 自主改进循环 Round 1（2026-08-16，用户外出期间）
+
+- **App 红线修复**：OkHttp 默认 readTimeout 仅 10s，而 agentic RAG 需 60-90s → 用户聊天必然超时失败；已改为 connect 15s / read 120s / write 60s。
+- **agentic 延迟优化**：校验提示词轻量化（只输出 unsupported_claims）+ max_tokens=200 → 生产延迟 66s → 普通问诊 4.4s / 安心话聊 8.5s。
+- **数据维护服务**（DataMaintenanceService，每日）：清理过期 session、30 天前撤销 session、过期幂等键、30 天前终态 job（此前这些表无清理，无限增长）。
+- **ai-service job 元数据清理**：ingest 时顺带删 30 天前 job（sqlite 防增长）。
+- **AI 交互审计上线**（安全合规）：AiAuditEvent 表（V3 建表后一直空置）→ AiAuditService.record 接入问诊/安心话聊，生产实测 AI_CHAT 事件带 traceId/model/风险元数据。
+- **评估 v2**：优化后重跑 single vs agentic，忠实度 agentic +0.035（judge 方差分析已记录）。
+- 测试：后端 94（+4）、AI 124（+7）；全部推送，工作树干净；冒烟 10/10。
