@@ -41,7 +41,9 @@ def test_rag_without_evidence_does_not_fabricate():
 
 def test_health_endpoint():
     client = TestClient(app)
-    assert client.get("/healthz").json() == {"status": "ok"}
+    body = client.get("/healthz").json()
+    assert body["status"] == "ok"
+    assert "providers" in body and "vectorStore" in body  # 运维可观测字段
 
 
 def test_job_state_survives_repository_reopen(tmp_path):

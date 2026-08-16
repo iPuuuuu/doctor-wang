@@ -40,7 +40,17 @@ def authenticate(token: str | None):
 
 
 @app.get("/healthz")
-def healthz(): return {"status": "ok"}
+def healthz():
+    # 轻量：不探测网络，只反映 provider 配置状态与向量库后端，便于运维快速定位
+    return {
+        "status": "ok",
+        "providers": {
+            "llm": bool(settings.llm_endpoint and settings.llm_api_key),
+            "embedding": bool(settings.embedding_endpoint and settings.embedding_api_key),
+            "ocr": bool(settings.ocr_endpoint and settings.ocr_api_key),
+        },
+        "vectorStore": "pg" if settings.database_url else "inmemory",
+    }
 
 
 @app.post("/internal/v1/ingestions", response_model=IngestionResponse, status_code=202)
