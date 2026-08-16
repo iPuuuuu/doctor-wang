@@ -18,9 +18,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.mockito.ArgumentMatchers.any
+import org.mockito.Mockito.doAnswer
 import org.mockito.Mockito.doReturn
 import org.mockito.Mockito.mock
 import org.mockito.Mockito.verify
+import org.mockito.invocation.InvocationOnMock
 import org.mockito.ArgumentCaptor
 import org.springframework.data.domain.PageImpl
 import java.time.OffsetDateTime
@@ -119,4 +121,32 @@ class ChatServiceTest {
             org.mockito.ArgumentMatchers.anyMap() ?: emptyMap(),
         )
     }
+    @Test
+    fun `ai request carries recent conversation history`() {
+        val report = MedicalReportEntity(id = 9, user = user, title = "体检", reportDate = "", reportType = "",
+            summary = "s", status = "COMPLETED")
+        doReturn(listOf(report)).`when`(reportRepo).findAllByUserOrderByCreatedAtDescIdDesc(user)
+        doReturn(emptyList<HealthProfileDiseaseEntity>()).`when`(diseaseRepo).findAllByUserOrderByIdAsc(user)
+        // 历史消息：一条问诊 + 一条回答
+        doReturn(listOf(
+            ChatMessageEntity(user = user, role = "user", content = "我的肝功能正常吗？", conversation = "general"),
+            ChatMessageEntity(user = user, role = "assistant", content = "转氨酶正常。", conversation = "general"),
+        )).`when`(chatRepo).findAllByUserAndConversationOrderByCreatedAtAscIdAsc(user, "general")
+        val response = com.ipuuuuu.doctorwang.mock.model.AiRagResponse(
+            requestId = "r", status = "OK", riskLevel = "LOW", summary = "好的。",
+            citations = listOf(com.ipuuuuu.doctorwang.mock.model.AiCitation("report", "9", "c", 1, "片段", 0.9, "v1")),
+            traceId = "t",
+        )
+        var captured: com.ipuuuuu.doctorwang.mock.model.AiRagRequest? = null
+        doAnswer { invocation: InvocationOnMock ->
+            captured = invocation.getArgument(0)
+            response
+        }.`when`(aiClient).query(any(com.ipuuuuu.doctorwang.mock.model.AiRagRequest::class.java) ?: com.ipuuuuu.doctorwang.mock.model.AiRagRequest("r", 7, 9, "q", listOf("report:7:9"), traceId = "t"))
+
+        service().sendMessage("那胆红素呢？")
+
+        assertTrue(captured?.conversationHistory?.contains("肝功能") == true)
+        assertTrue(captured?.conversationHistory?.contains("转氨酶") == true)
+    }
+
 }
