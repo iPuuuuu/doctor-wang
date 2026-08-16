@@ -46,7 +46,7 @@ cd ai-service && pip install -e ".[dev]" && pytest
 
 ## 测试与 CI
 
-- 后端 101 单测/契约测试 · AI 124 pytest · Android 19 契约测试（全绿）
+- 后端 105 单测/契约测试 · AI 132 pytest · Android 19 契约测试（全绿）
 - CI（GitHub Actions）：Android 构建、后端 JDK21 测试、**PostgreSQL/Testcontainers 集成测试**、AI pytest、whitespace 检查
 - 关键测试点：JWT/会话/越权、报告归属（namespace）、AI 安全门（高风险/无证据/引用可追溯）、病毒扫描 fail-closed、安心话聊提示词与边界
 
