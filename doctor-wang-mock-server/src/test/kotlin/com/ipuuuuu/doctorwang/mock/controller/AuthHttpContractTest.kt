@@ -29,6 +29,7 @@ import org.mockito.Mockito.doAnswer
 import org.springframework.http.MediaType
 import org.springframework.test.web.servlet.MockMvc
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete
 import org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath
 import org.springframework.test.web.servlet.result.MockMvcResultMatchers.status
@@ -37,6 +38,8 @@ import org.springframework.test.web.servlet.setup.StandaloneMockMvcBuilder
 import java.time.OffsetDateTime
 
 class AuthHttpContractTest {
+
+    private val accountService = mock(AccountService::class.java)
     private val objectMapper = ObjectMapper()
     private val backendService = mock(BackendService::class.java)
     private val userSessions = mock(UserSessionRepository::class.java)
@@ -114,6 +117,35 @@ class AuthHttpContractTest {
             .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
 
         verifyNoInteractions(backendService, userSessions)
+    }
+
+    @Test
+    fun `account delete requires a bearer token`() {
+        authMvc().perform(delete("/api/account"))
+            .andExpect(status().isUnauthorized)
+            .andExpect(jsonPath("$.code").value("AUTHENTICATION_REQUIRED"))
+    }
+
+    @Test
+    fun `account delete succeeds with valid session`() {
+        val sessions = statefulSessions()
+        val tokenService = JwtTokenService(AuthProperties(jwtSecret = SECRET), objectMapper)
+        val mvc = builder(AuthController(realBackend(sessions, tokenService), IpThrottleService(limit = 10000), accountService), sessions.repository, tokenService).build()
+        val (token, jwt) = tokenService.issue(USER.userId, USER.id)
+        sessions.put(
+            UserSessionEntity(
+                id = 7,
+                jti = jwt.sessionId,
+                tokenHash = tokenService.tokenHash(token),
+                user = USER,
+                expiresAt = OffsetDateTime.now().plusMinutes(5),
+            ),
+        )
+
+        mvc.perform(delete("/api/account").header("Authorization", "Bearer $token"))
+            .andExpect(status().isNoContent)
+
+        verify(accountService).deleteAccount()
     }
 
     @Test
@@ -311,7 +343,7 @@ class AuthHttpContractTest {
     }
 
     private fun authMvc(): MockMvc {
-        return builder(AuthController(backendService, IpThrottleService(limit = 10000), mock(AccountService::class.java))).build()
+        return builder(AuthController(backendService, IpThrottleService(limit = 10000), accountService)).build()
     }
 
     private fun builder(controller: Any): StandaloneMockMvcBuilder = builder(controller, userSessions, jwtTokenService)
