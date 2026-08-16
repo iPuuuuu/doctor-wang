@@ -15,7 +15,7 @@ Android (Kotlin + Compose) ──HTTPS──▶ Spring Boot 后端 ──interna
 
 - **Android**（`app/`）：登录/注册、首页、AI 问诊、**安心话聊**、报告上传/列表/详情、健康档案、账号设置。Material3 定制主题（镇静青绿）。
 - **后端**（`doctor-wang-mock-server/`）：Spring Boot 3 + Kotlin，运行于 Java 21（ADR-0007）。JWT 认证（可撤销会话）、报告 CRUD/上传/下载（MIME+magic number+病毒扫描 fail-closed）、健康档案、聊天与安心话聊、actuator 健康检查。
-- **AI 服务**（`ai-service/`）：FastAPI + LangGraph。RAG 管线（真实 OCR→embedding→pgvector 检索→LLM 生成）、**混合检索（字符二元组词法 + 向量 RRF 融合）**、3 级医疗安全门、**anxiety 模式**（安心话聊专用提示词 + 症状自查知识库）、引用追溯、**RAGAS 风格评估体系（忠实度/证据覆盖/相关性/拒绝正确性）**。
+- **AI 服务**（`ai-service/`）：FastAPI + LangGraph。**自校正 Agentic RAG**（生成→声明级证据校验→回溯修正的 quality gate，未核实内容 fail-closed 标记复核）、**混合检索（字符二元组词法 + 向量 RRF 融合）**、3 级医疗安全门、**anxiety 模式**（安心话聊专用提示词 + 症状自查知识库）、引用追溯、**RAGAS 风格评估体系（忠实度/证据覆盖/相关性/拒绝正确性，支持 single vs agentic 引擎对比）**。
 - **部署**（`deploy/`）：Docker Compose（PostgreSQL+pgvector / backend / ai-service / Nginx TLS）、runbook、服务器加固与恢复脚本、CI（GitHub Actions，含 Testcontainers 集成测试）。
 
 ## 功能

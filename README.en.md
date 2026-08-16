@@ -16,6 +16,7 @@ A full-stack, production-deployed AI health assistant: upload medical reports (P
 - **Medical-grade safety**: fail-closed pipeline, high-risk symptom triage, citation-traceable RAG, honest no-evidence fallback (zero fabrication — verified by evaluation).
 - **Quantified RAG quality**: RAGAS-style evaluation harness (faithfulness / evidence coverage / relevance / decline correctness) with a DeepSeek LLM-judge over a 37-case Chinese medical QA set.
 - **Hybrid retrieval**: char-bigram lexical channel + vector search fused with Reciprocal Rank Fusion (RRF), with before/after evaluation numbers.
+- **Self-correcting agentic RAG (LangGraph)**: `generate → verify → backtrack` quality gate — a claim-level faithfulness judge flags unsupported statements and regenerates with a correction prompt; if unsupported claims remain, the answer is fail-closed to `needsReview`.
 
 ## Architecture
 
@@ -46,7 +47,7 @@ Android (Kotlin+Compose) ──HTTPS──▶ Spring Boot ──internal──�
 | Feature | Detail |
 |---|---|
 | Report upload + AI interpretation | PDF/JPG/PNG (≤20MB) → OCR → embedding → pgvector → LLM generates summary / key findings / suggestions **with citations** (structured `【摘要】【重点发现】【建议】` parsing, fail-closed fallback) |
-| AI Q&A (general) | Answers grounded in the user's reports + health profile; high-risk terms routed to emergency care |
+| AI Q&A (general) | Answers grounded in the user's reports + health profile; high-risk terms routed to emergency care; **self-correcting generation** (LangGraph verify→backtrack) reduces hallucination |
 | **Anxiety relief chat** (安心话聊) | Hypochondria/life-threatening-illness anxiety: distinguishes "what the report actually shows" from "what the user fears", empathetic + evidence-based, referral to psychology when needed. Enriched by a curated **symptom knowledge base** (benign explanations + red flags, non-diagnostic, versioned) |
 | Health archive | History, biometrics, BMI overview |
 | Auth & security | JWT (HS256) with **server-side revocable sessions**, BCrypt, per-user namespace isolation, no sensitive logging, file magic-number + MIME validation |
