@@ -172,3 +172,8 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 - **TLS 关键验证（真机可用性红线）**：① debug manifest 的 networkSecurityConfig 正确合并（自签证书信任生效，此前误判为缺失）；② APK 内置 server_cert.pem 指纹与服务器当前证书完全一致——**App 真机可直连服务器**。
 - **README 增补安全章节**（认证/防滥用/AI 安全/文件/隐私）。
 - 索引复核：chat/report/job 查询索引覆盖充分，当前规模无需新增。
+
+## 自主改进循环 Round 14（2026-08-16）
+
+- **App 设置页显示版本 + 环境标签**（用户可确认安装版本），APK 已更新。
+- **架构文档刷新**：JVM 17→21、Flyway V1-V8→V1-V11、1536 维 HNSW→2048 维无 ANN（超 HNSW 上限，说明取舍）、新增 AI 服务当前能力附录（混合检索/自校正/多轮/评估/运维）。
