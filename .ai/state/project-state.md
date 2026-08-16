@@ -147,3 +147,8 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 
 - **深色模式适配**：Material3 darkColorScheme（同色相暗色板）+ 安心话聊/登录/注册的 SoftTeal 背景改 theme-aware（isSystemInDarkTheme）；APK 已更新。
 - 后端日志审查：3h 内仅 5 条 GBK 解析警告（测试脚本所致），无其他 WARN/ERROR；AI 服务 0 异常。
+
+## 自主改进循环 Round 10（2026-08-16）
+
+- **报告解读专项评估**（新）：解读管线 → LLM-judge（摘要忠实/发现可溯源/建议安全）。过程中发现并修复两个真实问题：① LLM 格式遵从波动（偶发不输出三段式）→ 后端 interpret() 加"空发现/建议时重试一次"（已上线）；② judge 校准（截断/标准过严导致误判，人工复核确认为误判）。结论：解读内容事实质量高（人工核对通过），建议安全率 1.0，小样本 judge 分数如实标注局限。
+- 附带发现：**ai-service 存在 site-packages 旧代码副本**（镜像构建时的 pip install），运行中的 uvicorn 实际使用 /app/app 新代码（healthz providers + 多轮 + 延迟实测佐证）；但调试脚本若不显式 insert /app 会导入旧副本——评估脚本均有正确 insert，结果可信。
