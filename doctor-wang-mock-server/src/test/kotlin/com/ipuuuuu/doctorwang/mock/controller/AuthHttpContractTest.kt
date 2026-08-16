@@ -11,6 +11,7 @@ import com.ipuuuuu.doctorwang.mock.persistence.entity.UserSessionEntity
 import com.ipuuuuu.doctorwang.mock.persistence.repository.UserSessionRepository
 import com.ipuuuuu.doctorwang.mock.service.BackendService
 import com.ipuuuuu.doctorwang.mock.service.JwtTokenService
+import com.ipuuuuu.doctorwang.mock.service.IpThrottleService
 import com.ipuuuuu.doctorwang.mock.service.LoginThrottleService
 import com.ipuuuuu.doctorwang.mock.service.PasswordHasher
 import com.ipuuuuu.doctorwang.mock.persistence.repository.AppUserRepository
@@ -172,7 +173,7 @@ class AuthHttpContractTest {
             ),
         )
         val realBackend = realBackend(sessions, tokenService)
-        val mvc = builder(AuthController(realBackend), sessions.repository, tokenService).build()
+        val mvc = builder(AuthController(realBackend, IpThrottleService(limit = 10000)), sessions.repository, tokenService).build()
 
         mvc.perform(post("/api/logout").header("Authorization", "Bearer $token"))
             .andExpect(status().isNoContent)
@@ -292,7 +293,7 @@ class AuthHttpContractTest {
         )
         sessions.put(victimSession)
         val realBackend = realBackend(sessions, tokenService)
-        val mvc = builder(AuthController(realBackend), sessions.repository, tokenService).build()
+        val mvc = builder(AuthController(realBackend, IpThrottleService(limit = 10000)), sessions.repository, tokenService).build()
 
         mvc.perform(post("/api/logout").header("Authorization", "Bearer $attackerToken"))
             .andExpect(status().isUnauthorized)
@@ -309,7 +310,7 @@ class AuthHttpContractTest {
     }
 
     private fun authMvc(): MockMvc {
-        return builder(AuthController(backendService)).build()
+        return builder(AuthController(backendService, IpThrottleService(limit = 10000))).build()
     }
 
     private fun builder(controller: Any): StandaloneMockMvcBuilder = builder(controller, userSessions, jwtTokenService)
