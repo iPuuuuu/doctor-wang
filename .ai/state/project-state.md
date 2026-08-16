@@ -137,3 +137,8 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 - **注销契约测试**：DELETE /api/account 401（无 token）+ 204（有效会话）→ 后端 105/105。
 - **ai-service healthz 增强**：返回 providers（llm/embedding/ocr 配置状态）+ vectorStore 后端（运维可观测，零网络开销）；生产验证 3 provider 全配。
 - 复核 App 注册/资料编辑校验与后端边界一致。
+
+## 自主改进循环 Round 8（2026-08-16）
+
+- **并发稳定性验证**：5 并发安心话聊全部 200（7-13s，单 worker 顺序处理，无错误无崩溃）；此前一次"400"系测试脚本 shell 转义把中文变 GBK 所致，非服务问题（已用文件 payload 复测确认）。
+- **导航/首页复核**：上传成功→详情跳转正确；BMI 计算有 height=0 边界（注册/更新有 30-250 校验，风险低）。
