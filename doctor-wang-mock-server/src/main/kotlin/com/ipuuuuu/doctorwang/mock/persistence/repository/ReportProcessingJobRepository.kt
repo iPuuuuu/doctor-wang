@@ -16,4 +16,8 @@ interface ReportProcessingJobRepository : JpaRepository<ReportProcessingJobEntit
     @Modifying
     @Query(value = "update report_processing_job set status = 'RETRYING', next_attempt_at = :at, locked_at = null, locked_by = null, lease_expires_at = null, updated_at = :at where status = 'PROCESSING' and lease_expires_at < :at", nativeQuery = true)
     fun recoverExpired(at: java.time.OffsetDateTime): Int
+
+    @Modifying
+    @Query(value = "delete from report_processing_job where status in ('COMPLETED','FAILED') and finished_at is not null and finished_at < :cutoff", nativeQuery = true)
+    fun pruneTerminalBefore(cutoff: java.time.OffsetDateTime): Int
 }

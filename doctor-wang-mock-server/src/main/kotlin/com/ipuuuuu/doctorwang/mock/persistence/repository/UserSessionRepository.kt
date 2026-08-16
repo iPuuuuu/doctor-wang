@@ -25,4 +25,12 @@ interface UserSessionRepository : JpaRepository<UserSessionEntity, Long> {
         @Param("currentJti") currentJti: String,
         @Param("revokedAt") revokedAt: OffsetDateTime,
     ): Int
+
+    @Modifying(flushAutomatically = true)
+    @Query("delete from UserSessionEntity session where session.expiresAt <= :now")
+    fun deleteExpired(@Param("now") now: OffsetDateTime): Int
+
+    @Modifying(flushAutomatically = true)
+    @Query("delete from UserSessionEntity session where session.revokedAt is not null and session.revokedAt <= :cutoff")
+    fun deleteRevokedBefore(@Param("cutoff") cutoff: OffsetDateTime): Int
 }
