@@ -109,9 +109,81 @@ def score_decline(generator, question: str, answer: str) -> dict:
     }
 
 
+def run_mode(args, mode: str, store, embedder, generator, dataset) -> tuple[list[dict], dict]:
+    """跑一个检索模式，返回 (逐题明细, 聚合指标)。mode=vector 用纯向量（基线），mode=hybrid 用 RRF 融合。"""
+    def vector_searcher(namespace, qv, qt, k):
+        return store.search(namespace, qv, k)
+
+    def hybrid_searcher(namespace, qv, qt, k):
+        from app.rag import search
+        return search(store, namespace, qv, qt, k)
+
+    searcher = vector_searcher if mode == "vector" else hybrid_searcher
+    print(f"[eval] mode={mode} cases={len(dataset)}")
+    results = []
+    for case in dataset:
+        request = RagRequest(
+            requestId=f"eval-{mode}-{case['id']}",
+            userId=1,
+            reportId=case["reportId"],
+            question=case["question"],
+            namespaceHints=[case["namespace"]],
+            topK=5,
+            traceId=f"eval-{mode}-{case['id']}",
+        )
+        resp = query_rag(request, store, embedder, generator, searcher=searcher)
+        answer = resp.summary
+        context = "\n".join(c.excerpt for c in resp.citations)
+        row = {
+            "id": case["id"],
+            "question": case["question"],
+            "status": resp.status,
+            "answer": answer[:500],
+            "citations": len(resp.citations),
+            "citation_valid": all(c.sourceId == str(case["reportId"]) for c in resp.citations),
+            "expectDecline": case["expectDecline"],
+        }
+        if case["expectDecline"]:
+            # 无证据/越界类题目：评估拒绝正确性（诚实拒答 + 就医边界），不评忠实度
+            row["faithfulness"] = None
+            row["coverage"] = None
+            row["relevance"] = None
+            row.update(score_decline(generator, case["question"], answer))
+        elif resp.status == "OK":
+            row.update(score_faithfulness(generator, answer, context))
+            row.update(score_coverage(generator, answer, case["golden"]))
+            row.update(score_relevance(generator, case["question"], answer))
+            row["decline_ok"] = True
+        else:
+            row["faithfulness"] = None
+            row.update(score_coverage(generator, answer, case["golden"]))
+            row["relevance"] = None
+            row.update(score_decline(generator, case["question"], answer))
+        results.append(row)
+        print(f"  [{row['id']}] {resp.status} ans={len(answer)} chars citations={row['citations']}")
+    evidence_rows = [r for r in results if not r["expectDecline"]]
+    decline_rows = [r for r in results if r["expectDecline"]]
+    f = [r["faithfulness"] for r in evidence_rows if r.get("faithfulness") is not None]
+    c = [r["coverage"] for r in evidence_rows if r.get("coverage") is not None]
+    rv = [r["relevance"] for r in evidence_rows if r.get("relevance") is not None]
+    decline_pass = [r for r in decline_rows if r.get("decline_ok")]
+    metrics = {
+        "mode": mode,
+        "cases_total": len(results),
+        "cases_evidence": len(evidence_rows),
+        "cases_decline": len(decline_rows),
+        "avg_faithfulness": round(sum(f) / len(f), 3) if f else None,
+        "avg_coverage": round(sum(c) / len(c), 3) if c else None,
+        "avg_relevance": round(sum(rv) / len(rv), 3) if rv else None,
+        "decline_pass_rate": round(len(decline_pass) / len(decline_rows), 3) if decline_rows else None,
+        "citation_valid_rate": round(sum(1 for r in results if r.get("citation_valid")) / len(results), 3),
+    }
+    return results, metrics
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--mode", choices=["vector", "hybrid"], default="vector")
+    parser.add_argument("--mode", choices=["vector", "hybrid", "both"], default="both")
     parser.add_argument("--dataset", default=str(Path(__file__).parent / "dataset.json"))
     parser.add_argument("--out", default=str(Path(__file__).parent / "report"))
     args = parser.parse_args()
@@ -126,77 +198,35 @@ def main() -> int:
         settings.llm_endpoint, settings.llm_api_key, settings.llm_model, timeout=settings.provider_timeout_seconds,
     )
 
-    print(f"[eval] mode={args.mode} cases={len(dataset)} db_url={'yes' if settings.database_url else 'no'}")
-    results = []
-    for case in dataset:
-        request = RagRequest(
-            requestId=f"eval-{case['id']}",
-            userId=1,
-            reportId=case["reportId"],
-            question=case["question"],
-            namespaceHints=[case["namespace"]],
-            topK=5,
-            traceId=f"eval-{case['id']}",
-        )
-        resp = query_rag(request, store, embedder, generator)
-        answer = resp.summary
-        context = "\n".join(c.excerpt for c in resp.citations)
-        row = {
-            "id": case["id"],
-            "question": case["question"],
-            "status": resp.status,
-            "answer": answer[:500],
-            "citations": len(resp.citations),
-            "citation_valid": all(c.sourceId == str(case["reportId"]) for c in resp.citations),
-            "expectDecline": case["expectDecline"],
-        }
-        if resp.status == "OK":
-            row.update(score_faithfulness(generator, answer, context))
-            row.update(score_coverage(generator, answer, case["golden"]))
-            row.update(score_relevance(generator, case["question"], answer))
-            row["decline_ok"] = True
-        else:
-            # INSUFFICIENT_EVIDENCE / SAFETY_BLOCKED：按无证据处理路径评估
-            row["faithfulness"] = None
-            row.update(score_coverage(generator, answer, case["golden"]))
-            row["relevance"] = None
-            row.update(score_decline(generator, case["question"], answer))
-            row["status_expected"] = "decline-path"
-        results.append(row)
-        print(f"  [{row['id']}] {resp.status} ans={len(answer)} chars citations={row['citations']}")
+    modes = ["vector", "hybrid"] if args.mode == "both" else [args.mode]
+    all_metrics = []
+    all_results = {}
+    for mode in modes:
+        results, metrics = run_mode(args, mode, store, embedder, generator, dataset)
+        all_metrics.append(metrics)
+        all_results[mode] = results
 
-    # 聚合
-    ok_rows = [r for r in results if r["status"] == "OK"]
-    decline_rows = [r for r in results if r["status"] != "OK"]
-    f = [r["faithfulness"] for r in ok_rows if r.get("faithfulness") is not None]
-    c = [r["coverage"] for r in ok_rows if r.get("coverage") is not None]
-    rv = [r["relevance"] for r in ok_rows if r.get("relevance") is not None]
-    decline_pass = [r for r in decline_rows if r.get("decline_ok")]
-    metrics = {
-        "mode": args.mode,
-        "cases_total": len(results),
-        "cases_ok": len(ok_rows),
-        "cases_decline_path": len(decline_rows),
-        "avg_faithfulness": round(sum(f) / len(f), 3) if f else None,
-        "avg_coverage": round(sum(c) / len(c), 3) if c else None,
-        "avg_relevance": round(sum(rv) / len(rv), 3) if rv else None,
-        "decline_pass_rate": round(len(decline_pass) / len(decline_rows), 3) if decline_rows else None,
-        "citation_valid_rate": round(sum(1 for r in results if r.get("citation_valid")) / len(results), 3),
-    }
     out_dir = Path(args.out)
     out_dir.mkdir(parents=True, exist_ok=True)
-    (out_dir / "metrics.json").write_text(json.dumps(metrics, ensure_ascii=False, indent=2), encoding="utf-8")
-    lines = ["# RAG 评估报告", "", f"- 模式: {args.mode}", f"- 测试数: {metrics['cases_total']}（证据题 {metrics['cases_ok']} / 无证据拒绝题 {metrics['cases_decline_path']}）", ""]
-    lines += ["| 指标 | 数值 |", "|---|---|"]
-    for k, v in metrics.items():
-        lines.append(f"| {k} | {v} |")
-    lines += ["", "## 逐题明细", "", "| ID | 状态 | 引用 | 忠实度 | 覆盖 | 相关性 | 拒绝通过 |", "|---|---|---|---|---|---|---|"]
-    for r in results:
-        lines.append(f"| {r['id']} | {r['status']} | {r['citations']} | {r.get('faithfulness', '-')} | {r.get('coverage', '-')} | {r.get('relevance', '-')} | {r.get('decline_ok', '-')} |")
+    (out_dir / "metrics.json").write_text(json.dumps(all_metrics, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    lines = ["# RAG 评估报告", "", f"- 测试数: {len(dataset)}（证据题/无证据拒绝题按模式统计）", "", "## 指标对比", "", "| 指标 | vector（基线） | hybrid |", "|---|---|---|"]
+    if len(all_metrics) == 2:
+        base, hyb = all_metrics
+        for key in ["cases_evidence", "cases_decline", "avg_faithfulness", "avg_coverage", "avg_relevance", "decline_pass_rate", "citation_valid_rate"]:
+            lines.append(f"| {key} | {base.get(key)} | {hyb.get(key)} |")
+    else:
+        m = all_metrics[0]
+        for key, v in m.items():
+            lines.append(f"| {key} | {v} |")
+    for mode in modes:
+        lines += ["", f"## 逐题明细（{mode}）", "", "| ID | 状态 | 引用 | 忠实度 | 覆盖 | 相关性 | 拒绝通过 |", "|---|---|---|---|---|---|---|"]
+        for r in all_results[mode]:
+            lines.append(f"| {r['id']} | {r['status']} | {r['citations']} | {r.get('faithfulness', '-')} | {r.get('coverage', '-')} | {r.get('relevance', '-')} | {r.get('decline_ok', '-')} |")
     (out_dir / "report.md").write_text("\n".join(lines), encoding="utf-8")
     print("\n== 指标 ==")
-    for k, v in metrics.items():
-        print(f"  {k}: {v}")
+    for m in all_metrics:
+        print("  ", json.dumps(m, ensure_ascii=False))
     print(f"[eval] 报告已写入 {out_dir}")
     return 0
 

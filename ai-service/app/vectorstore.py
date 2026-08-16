@@ -55,6 +55,15 @@ class PgVectorStore:
         import json
         return [(VectorRecord(row[0], row[1], [], row[2], row[4] if isinstance(row[4], dict) else json.loads(row[4])), 1 - float(row[3])) for row in rows]
 
+    def all_chunks(self, namespace: str) -> list[VectorRecord]:
+        """返回 namespace 下全部 chunk（供混合检索的词法通道使用）。"""
+        sql = f"SELECT chunk_id, namespace, content, metadata FROM {self.table} WHERE namespace=%s"
+        with self.connection.cursor() as cursor:
+            cursor.execute(sql, (namespace,))
+            rows = cursor.fetchall()
+        import json
+        return [VectorRecord(row[0], row[1], [], row[2], row[3] if isinstance(row[3], dict) else json.loads(row[3])) for row in rows]
+
     def delete_namespace(self, namespace: str) -> None:
         with self.connection.cursor() as cursor:
             cursor.execute(f"DELETE FROM {self.table} WHERE namespace=%s", (namespace,))

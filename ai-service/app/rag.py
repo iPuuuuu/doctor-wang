@@ -1,4 +1,5 @@
 from .embeddings import EmbeddingProvider
+from .hybrid import hybrid_rank, lexical_score
 from .schemas import Citation, RagResponse
 from .safety import risk_triage
 
@@ -19,7 +20,22 @@ ANXIETY_SYSTEM_PROMPT = (
 )
 
 
-def query_rag(request, store, embedder: EmbeddingProvider, generator=None) -> RagResponse:
+def search(store, namespace: str, query_vector: list[float], query_text: str, top_k: int) -> list[tuple]:
+    """向量 + 词法（字符二元组）RRF 融合检索；store 不支持词法通道时回退纯向量。"""
+    if not hasattr(store, "all_chunks"):
+        return store.search(namespace, query_vector, top_k)
+    chunks = store.all_chunks(namespace)
+    if not chunks:
+        return store.search(namespace, query_vector, top_k)
+    vector_hits = store.search(namespace, query_vector, top_k=max(top_k * 4, 10))
+    vector_scores = {r.chunk_id: score for r, score in vector_hits}
+    lexical_scores = {c.chunk_id: lexical_score(query_text, c.text) for c in chunks}
+    ordered = hybrid_rank(vector_scores, lexical_scores, top_k)
+    by_id = {c.chunk_id: c for c in chunks}
+    return [(by_id[cid], vector_scores.get(cid, 0.0)) for cid in ordered if cid in by_id]
+
+
+def query_rag(request, store, embedder: EmbeddingProvider, generator=None, searcher=None) -> RagResponse:
     namespace = f"report:{request.userId}:{request.reportId}"
     if namespace not in request.namespaceHints:
         return RagResponse(requestId=request.requestId, status="SAFETY_BLOCKED", riskLevel="HIGH", summary="未授权的报告空间。", citations=[], warnings=["请求未通过报告归属校验。"], needsReview=True, traceId=request.traceId)
@@ -29,7 +45,8 @@ def query_rag(request, store, embedder: EmbeddingProvider, generator=None) -> Ra
                            summary="当前问题可能涉及紧急危险信号，请立即联系急救服务（120）或尽快就医。",
                            citations=[], warnings=["AI 健康辅助不能替代急诊或医生判断。"],
                            needsReview=True, traceId=request.traceId)
-    hits = store.search(namespace, embedder.embed([request.question])[0], request.topK)
+    retrieve = searcher or (lambda ns, qv, qt, k: search(store, ns, qv, qt, k))
+    hits = retrieve(namespace, embedder.embed([request.question])[0], request.question, request.topK)
     if not hits:
         return RagResponse(requestId=request.requestId, status="INSUFFICIENT_EVIDENCE", riskLevel=risk,
                            summary="当前报告中没有足够的可检索资料回答这个问题。",
