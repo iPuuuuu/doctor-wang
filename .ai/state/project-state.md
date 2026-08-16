@@ -160,3 +160,9 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 ## 自主改进循环 Round 11 补充
 
 - **轻量评估冒烟集**（5 题/2 分钟）：日常回归工具，本次实测 agentic 忠实度 1.0、拒绝 1.0、引用 1.0。
+
+## 自主改进循环 Round 12（2026-08-16）
+
+- **CI 缓存**：Gradle + pip 缓存启用（加速 CI 运行）。
+- **多轮历史回归测试**：ChatServiceTest 断言 AiRagRequest.conversationHistory 携带最近对话（后端 106/106）。
+- 连接池复核：Hikari 默认 10 vs PG max_connections 50，余量充足无需调整。
