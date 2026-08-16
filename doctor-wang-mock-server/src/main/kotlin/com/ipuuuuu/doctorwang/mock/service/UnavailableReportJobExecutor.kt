@@ -34,20 +34,38 @@ class UnavailableReportJobExecutor(private val client: AiReportClient, private v
     }
 
     /** 一次循证 RAG 查询生成解读；AI 不可用/无证据/校验不过/非 OK → 诚实兜底。 */
-    private fun interpret(job: ReportProcessingJobEntity, namespace: String): ReportInterpretation.Interpretation = try {
-        val request = AiRagRequest(
-            requestId = UUID.randomUUID().toString(),
-            userId = job.userId ?: job.report.user.id,
-            reportId = job.report.id,
-            question = ReportInterpretation.PROMPT,
-            namespaceHints = listOf(namespace),
-            topK = 5,
-            traceId = job.traceId,
-        )
-        val response = AiSafetyGate.validate(client.query(request), job.report.id)
-        if (response.status != "OK") ReportInterpretation.Interpretation.fallback()
-        else ReportInterpretation.parse(response.summary)
-    } catch (_: Exception) {
-        ReportInterpretation.Interpretation.fallback()
+    private fun interpret(job: ReportProcessingJobEntity, namespace: String): ReportInterpretation.Interpretation {
+        return try {
+            val request = AiRagRequest(
+                requestId = UUID.randomUUID().toString(),
+                userId = job.userId ?: job.report.user.id,
+                reportId = job.report.id,
+                question = ReportInterpretation.PROMPT,
+                namespaceHints = listOf(namespace),
+                topK = 5,
+                traceId = job.traceId,
+            )
+            val response = AiSafetyGate.validate(client.query(request), job.report.id)
+            if (response.status != "OK") return ReportInterpretation.Interpretation.fallback()
+            var parsed = ReportInterpretation.parse(response.summary)
+            // 格式遵从波动：LLM 偶发不按【摘要】【重点发现】【建议】分段输出，
+            // 导致发现/建议为空——用更严格的提示词重试一次，仍失败则接受兜底/单摘要。
+            if (parsed.findings.isEmpty() && parsed.suggestions.isEmpty()) {
+                val retry = AiRagRequest(
+                    requestId = UUID.randomUUID().toString(),
+                    userId = job.userId ?: job.report.user.id,
+                    reportId = job.report.id,
+                    question = ReportInterpretation.PROMPT + "\n严格检查输出包含【摘要】【重点发现】【建议】三个标题，缺一不可。",
+                    namespaceHints = listOf(namespace),
+                    topK = 5,
+                    traceId = job.traceId,
+                )
+                val retried = AiSafetyGate.validate(client.query(retry), job.report.id)
+                if (retried.status == "OK") parsed = ReportInterpretation.parse(retried.summary)
+            }
+            parsed
+        } catch (_: Exception) {
+            ReportInterpretation.Interpretation.fallback()
+        }
     }
 }

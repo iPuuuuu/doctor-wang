@@ -7,6 +7,16 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+# 与后端 Kotlin ReportInterpretation.PROMPT 一致：要求 LLM 严格分段、只基于报告原文
+INTERPRETATION_PROMPT = (
+    "请以健康辅助助手身份解读这份检查报告。严格只基于报告原文内容，报告中没有的内容一律不要写。"
+    "必须严格按以下格式输出，且只输出这三个部分，不要添加其他文字或标题：\n"
+    "【摘要】用一段话概括报告的主要内容\n"
+    "【重点发现】1. 具体检查结果一\n2. 具体检查结果二\n"
+    "【建议】1. 基于报告内容的就医或复查建议一\n2. 建议二\n"
+    "如果报告中信息不足以给出建议，【建议】只写：请将本报告交由医生解读。"
+)
+
 SUMMARY_MARK = "【摘要】"
 FINDINGS_MARK = "【重点发现】"
 SUGGESTIONS_MARK = "【建议】"
