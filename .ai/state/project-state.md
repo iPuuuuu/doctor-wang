@@ -218,3 +218,13 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 
 - **最终功能矩阵全过**：报告列表（4 份全 COMPLETED）/ 详情解读（摘要+2 发现+2 建议）/ 安心话聊（620 字+5 引用）/ 重新解读（2+1）/ 注册+注销（204）。
 - 服务器稳定 17.5h+，健康巡检持续 OK。
+
+## UI-001 Android 产品体验重构（2026-08-18）
+
+- **设计系统**：在既有 Material 3 主题上补全 Typography，新增统一 Loading/Error 状态组件；未引入额外 UI 库。
+- **核心流程**：Chat / Upload / Profile / Report Detail / Settings 补齐显式返回路径；档案新增可见编辑入口；报告详情新增“咨询这份报告”；报告空态可直接上传。
+- **移动端**：首页服务入口由三列拥挤布局调整为稳定两列 + 全宽设置入口；报告危险操作下沉为独立全宽操作，适配 375–430dp。
+- **AI 对话**：快捷问题可点击、IME Send、失败可重试且不重复添加用户气泡、思考状态、轻量 Markdown（标题/列表/表格/粗体）和 HTML 标签清洗；citation / warning / 医疗边界声明保持可见。
+- **医疗报告**：技术状态码中文化；未知状态 fail-safe 显示“状态未知，请稍后刷新”，不误显示成功。
+- **验证**：`./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon` 三轮以上 BUILD SUCCESSFUL；22/22 单测 PASS；`git diff --check` PASS；APK 15MB。真机/模拟器视觉验证 NOT RUN（当前无设备）。
+- **审查**：独立 QA 首轮 REWORK（暗色语义色、HTML 清洗、未知状态）已全部修复；最终复核 ACCEPT，无 P0/P1 遗留。UI-001 状态 ACCEPTED。

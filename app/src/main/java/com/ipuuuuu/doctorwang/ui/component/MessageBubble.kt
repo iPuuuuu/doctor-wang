@@ -12,7 +12,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.ipuuuuu.doctorwang.data.model.Message
@@ -39,13 +38,17 @@ fun MessageBubble(message: Message) {
                 Text(
                     text = if (isUser) "你" else "Doctor-Wang",
                     style = MaterialTheme.typography.labelMedium,
-                    color = if (isUser) Color.White else Primary,
+                    color = if (isUser) MaterialTheme.colorScheme.onPrimary else Primary,
                 )
-                Text(
-                    text = message.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = if (isUser) Color.White else MaterialTheme.colorScheme.onSurface,
-                )
+                if (isUser) {
+                    Text(
+                        text = message.content,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onPrimary,
+                    )
+                } else {
+                    MedicalMarkdown(content = message.content)
+                }
                 if (!isUser && message.warnings.isNotEmpty()) {
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                         Text(

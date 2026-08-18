@@ -38,6 +38,8 @@ import com.ipuuuuu.doctorwang.viewmodel.ReportDetailViewModel
 fun ReportDetailScreen(
     onSessionExpired: () -> Unit,
     onDeleted: () -> Unit,
+    onBack: () -> Unit,
+    onConsult: () -> Unit,
     viewModel: ReportDetailViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -122,6 +124,15 @@ fun ReportDetailScreen(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                OutlinedButton(onClick = onBack) { Text("返回") }
+                Button(onClick = onConsult) { Text("咨询这份报告") }
+            }
+        }
+        item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
@@ -135,7 +146,7 @@ fun ReportDetailScreen(
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (report.date.isNotBlank()) InfoChip(text = report.date)
                         if (report.type.isNotBlank()) InfoChip(text = report.type)
-                        status?.phase?.let { InfoChip(text = it) }
+                        status?.phase?.let { InfoChip(text = friendlyStatus(it)) }
                     }
                 }
             }
@@ -155,34 +166,35 @@ fun ReportDetailScreen(
             }
         }
         item {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
-            ) {
-                if (status?.canRetry == true) {
-                    Button(
-                        onClick = viewModel::retry,
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    if (status?.canRetry == true) {
+                        Button(
+                            onClick = viewModel::retry,
+                            modifier = Modifier.weight(1f),
+                            enabled = !uiState.isRetrying,
+                        ) {
+                            Text(if (uiState.isRetrying) "重试中…" else "重新解析")
+                        }
+                    }
+                    OutlinedButton(
+                        onClick = viewModel::regenerateInterpretation,
                         modifier = Modifier.weight(1f),
                         enabled = !uiState.isRetrying,
                     ) {
-                        Text(if (uiState.isRetrying) "重试中..." else "重新解析")
+                        Text(if (uiState.isRetrying) "解读中…" else "重新解读")
                     }
                 }
-                // 重新解读：解读缺失/过时时可自助重新生成（AI 服务当时不可用等情况）
-                OutlinedButton(
-                    onClick = viewModel::regenerateInterpretation,
-                    modifier = Modifier.weight(1f),
-                    enabled = !uiState.isRetrying,
-                ) {
-                    Text(if (uiState.isRetrying) "解读中..." else "重新解读")
-                }
-                Button(
+                androidx.compose.material3.TextButton(
                     onClick = { showDeleteConfirm = true },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.fillMaxWidth(),
                     enabled = !uiState.isDeleting,
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                 ) {
-                    Text(if (uiState.isDeleting) "删除中..." else "删除报告", color = MaterialTheme.colorScheme.onErrorContainer)
+                    Text(if (uiState.isDeleting) "删除中…" else "删除这份报告")
                 }
             }
         }
@@ -233,7 +245,7 @@ fun ReportDetailScreen(
 @Composable
 private fun ReportStatusBlock(status: MedicalReport, isRefreshing: Boolean) {
     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(text = status.summary, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        Text(text = friendlyStatus(status.summary), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
         if (status.requiresReview) {
             Text(text = "报告内容需要人工复核，结果会尽快更新，请留意。", color = MaterialTheme.colorScheme.error)
         }
@@ -244,6 +256,15 @@ private fun ReportStatusBlock(status: MedicalReport, isRefreshing: Boolean) {
             Text(text = "正在刷新处理状态…", color = MaterialTheme.colorScheme.primary)
         }
     }
+}
+
+private fun friendlyStatus(value: String): String = when (value.uppercase()) {
+    "UPLOADED", "PENDING" -> "等待处理"
+    "PROCESSING", "RETRYING" -> "正在解析报告"
+    "COMPLETED" -> "解析完成"
+    "REVIEW_REQUIRED" -> "需要人工复核"
+    "FAILED" -> "解析未完成"
+    else -> "状态未知，请稍后刷新"
 }
 
 private fun friendlyFailure(code: String): String = when (code) {

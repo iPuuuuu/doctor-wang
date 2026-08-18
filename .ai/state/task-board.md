@@ -25,6 +25,7 @@ Full state machine: `.ai/workflows/task-lifecycle.md`
 | RAG-001 | 完成 RAG 系统 | P1 | BACKEND-001, CHAT-001 | ACCEPTED ✅（真实全链路本地实测：pgvector V9/V10 + 通义 OCR + 智谱 embedding + DeepSeek 生成；7 个生产 bug 已修） |
 | AGENT-001 | 完成 Agent 系统 | P2 | RAG-001 | ACCEPTED ✅ (A1-A3 done; 24 tests) |
 | ANDROID-001 | 完成 Android 客户端 | P1 | BACKEND-001 | ACCEPTED ⚠️（A1–A8 done；单测 15/15 PASS；assembleDebug PASS；QA 两轮复核后 P1/P2 全部修复；真机验证延期） |
+| UI-001 | Android 核心产品体验与设计系统重构 | P1 | ANDROID-001 | ACCEPTED ✅（Material 3 统一、核心导航闭环、AI Markdown/重试、报告与档案空态；22/22 tests + lint + assembleDebug PASS；独立 QA ACCEPT，真机 smoke 延期） |
 
 ## Next Phase Backlog（生产化，2026-08-14 建立，待 Architect 逐项批准）
 

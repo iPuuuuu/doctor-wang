@@ -43,6 +43,7 @@ import com.ipuuuuu.doctorwang.viewmodel.ReportListViewModel
 fun ReportListScreen(
     onBack: () -> Unit,
     onReportClick: (Long) -> Unit,
+    onUploadClick: () -> Unit,
     viewModel: ReportListViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -106,7 +107,16 @@ fun ReportListScreen(
                 verticalArrangement = Arrangement.Center,
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text("暂无报告", style = MaterialTheme.typography.bodyLarge)
+                Text("还没有医疗报告", style = MaterialTheme.typography.titleMedium)
+                Text(
+                    "上传检查报告后，可在这里查看处理状态与 AI 解读。",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 6.dp, start = 24.dp, end = 24.dp),
+                )
+                Button(onClick = onUploadClick, modifier = Modifier.padding(top = 16.dp)) {
+                    Text("上传第一份报告")
+                }
             }
         } else {
             LazyColumn(

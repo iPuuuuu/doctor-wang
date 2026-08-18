@@ -21,8 +21,11 @@ data class ChatUiState(
     val isSending: Boolean = false,
     val isLoading: Boolean = true,
     val errorMessage: String? = null,
+    val failedMessage: String? = null,
     val sessionExpired: Boolean = false,
-)
+) {
+    val canRetry: Boolean get() = !isSending && !failedMessage.isNullOrBlank()
+}
 
 @HiltViewModel
 class ChatViewModel @Inject constructor(
@@ -61,11 +64,19 @@ class ChatViewModel @Inject constructor(
     }
 
     fun updateInput(value: String) {
-        _uiState.value = _uiState.value.copy(input = value)
+        _uiState.value = _uiState.value.copy(input = value, errorMessage = null)
     }
 
     fun sendMessage() {
-        val content = _uiState.value.input.trim()
+        send(content = _uiState.value.input.trim(), appendUserMessage = true)
+    }
+
+    fun retryLastMessage() {
+        val content = _uiState.value.failedMessage ?: return
+        send(content = content, appendUserMessage = false)
+    }
+
+    private fun send(content: String, appendUserMessage: Boolean) {
         if (content.isEmpty() || _uiState.value.isSending) return
 
         val userMessage = Message(
@@ -75,14 +86,19 @@ class ChatViewModel @Inject constructor(
             timestamp = System.currentTimeMillis(),
             status = MessageStatus.SENT,
         )
+        val updatedMessages = if (appendUserMessage) {
+            _uiState.value.messages + userMessage
+        } else {
+            _uiState.value.messages
+        }
 
-        val updatedMessages = _uiState.value.messages + userMessage
         _uiState.value = _uiState.value.copy(
             messages = updatedMessages,
             conversationSummary = buildConversationSummary(updatedMessages),
             input = "",
             isSending = true,
             errorMessage = null,
+            failedMessage = null,
             sessionExpired = false,
         )
 
@@ -94,6 +110,7 @@ class ChatViewModel @Inject constructor(
                         messages = messagesWithReply,
                         conversationSummary = buildConversationSummary(messagesWithReply),
                         isSending = false,
+                        failedMessage = null,
                     )
                 }
                 .onFailure { error ->
@@ -107,7 +124,8 @@ class ChatViewModel @Inject constructor(
                     } else {
                         _uiState.value = _uiState.value.copy(
                             isSending = false,
-                            errorMessage = error.message ?: "发送失败",
+                            errorMessage = error.message ?: "发送失败，请检查网络后重试",
+                            failedMessage = content,
                         )
                     }
                 }

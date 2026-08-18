@@ -28,6 +28,7 @@ import com.ipuuuuu.doctorwang.viewmodel.SettingsViewModel
 @Composable
 fun SettingsScreen(
     onLoggedOut: () -> Unit,
+    onBack: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel(),
     passwordViewModel: PasswordChangeViewModel = hiltViewModel(),
 ) {
@@ -52,6 +53,7 @@ fun SettingsScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        TextButton(onClick = onBack) { Text("返回首页") }
         Text(text = "账号设置", style = MaterialTheme.typography.headlineSmall)
         Text(
             text = "版本 ${com.ipuuuuu.doctorwang.BuildConfig.VERSION_NAME} · ${com.ipuuuuu.doctorwang.BuildConfig.SERVER_ENVIRONMENT_LABEL}",

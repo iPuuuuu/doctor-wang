@@ -81,6 +81,7 @@ fun AppNavGraph(navController: NavHostController) {
             ChatScreen(
                 onUploadClick = { navController.navigate(Screen.Upload.route) },
                 onSessionExpired = navigateToLoginAndClearStack,
+                onBack = { navController.popBackStack() },
             )
         }
         composable(Screen.AnxietyChat.route) {
@@ -94,6 +95,7 @@ fun AppNavGraph(navController: NavHostController) {
                     navController.navigate(Screen.ReportDetail.createRoute(reportId))
                 },
                 onSessionExpired = navigateToLoginAndClearStack,
+                onBack = { navController.popBackStack() },
             )
         }
         composable(
@@ -103,11 +105,14 @@ fun AppNavGraph(navController: NavHostController) {
             ReportDetailScreen(
                 onSessionExpired = navigateToLoginAndClearStack,
                 onDeleted = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
+                onConsult = { navController.navigate(Screen.Chat.route) },
             )
         }
         composable(Screen.Profile.route) {
             HealthProfileScreen(
                 onEditClick = { navController.navigate(Screen.ProfileEdit.route) },
+                onBack = { navController.popBackStack() },
                 onSessionExpired = navigateToLoginAndClearStack,
             )
         }
@@ -118,11 +123,13 @@ fun AppNavGraph(navController: NavHostController) {
             ReportListScreen(
                 onBack = { navController.popBackStack() },
                 onReportClick = { reportId -> navController.navigate(Screen.ReportDetail.createRoute(reportId)) },
+                onUploadClick = { navController.navigate(Screen.Upload.route) },
             )
         }
         composable(Screen.Settings.route) {
             SettingsScreen(
                 onLoggedOut = navigateToLoginAndClearStack,
+                onBack = { navController.popBackStack() },
             )
         }
     }

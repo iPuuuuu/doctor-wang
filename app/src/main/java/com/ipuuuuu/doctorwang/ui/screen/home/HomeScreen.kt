@@ -99,15 +99,15 @@ fun HomeScreen(
             ) {
                 HomeEntryCard(
                     title = "AI 问诊",
-                    subtitle = "即时咨询常见不适",
-                    accent = "🩺",
+                    subtitle = "咨询症状与检查情况",
+                    accent = "咨询",
                     onClick = onChatClick,
                     modifier = Modifier.weight(1f),
                 )
                 HomeEntryCard(
                     title = "报告分析",
-                    subtitle = "上传体检或检查报告",
-                    accent = "📄",
+                    subtitle = "上传并查看 AI 解读",
+                    accent = "报告",
                     onClick = onUploadClick,
                     modifier = Modifier.weight(1f),
                 )
@@ -121,28 +121,42 @@ fun HomeScreen(
                 HomeEntryCard(
                     title = "健康档案",
                     subtitle = "查看病史与指标",
-                    accent = "❤️",
+                    accent = "档案",
                     onClick = onProfileClick,
                     modifier = Modifier.weight(1f),
                 )
                 HomeEntryCard(
                     title = "安心话聊",
-                    subtitle = "缓解对疾病的担忧",
-                    accent = "🌿",
+                    subtitle = "缓解健康担忧",
+                    accent = "安心",
                     onClick = onAnxietyChatClick,
-                    modifier = Modifier.weight(1f),
-                )
-                HomeEntryCard(
-                    title = "账号设置",
-                    subtitle = "修改密码、退出登录",
-                    accent = "⚙️",
-                    onClick = onSettingsClick,
                     modifier = Modifier.weight(1f),
                 )
             }
         }
         item {
-            Text(text = "最近咨询", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            HomeEntryCard(
+                title = "账号与隐私",
+                subtitle = "修改密码、退出登录或管理账号",
+                accent = "设置",
+                onClick = onSettingsClick,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        item {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(text = "最近咨询", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                Text(
+                    text = "查看报告",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.clickable(onClick = onReportListClick),
+                )
+            }
         }
         if (uiState.historyMessages.isEmpty()) {
             item {

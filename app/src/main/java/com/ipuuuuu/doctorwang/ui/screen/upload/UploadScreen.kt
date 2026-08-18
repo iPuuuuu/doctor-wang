@@ -26,6 +26,7 @@ import com.ipuuuuu.doctorwang.viewmodel.UploadViewModel
 fun UploadScreen(
     onUploadSuccess: (Long) -> Unit,
     onSessionExpired: () -> Unit,
+    onBack: () -> Unit,
     viewModel: UploadViewModel = hiltViewModel(),
 ) {
     val uiState = viewModel.uiState.collectAsStateWithLifecycle().value
@@ -50,6 +51,7 @@ fun UploadScreen(
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
+        androidx.compose.material3.TextButton(onClick = onBack) { Text("返回首页") }
         Text(text = "上传医疗资料", style = MaterialTheme.typography.headlineSmall, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
         Text(text = "支持 PDF / JPG / PNG，单文件不超过 20MB", style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant)
