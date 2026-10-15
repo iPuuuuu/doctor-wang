@@ -45,7 +45,9 @@ def healthz():
     return {
         "status": "ok",
         "providers": {
-            "llm": bool(settings.llm_endpoint and settings.llm_api_key),
+            # A private gateway such as AgentOps owns the upstream credential,
+            # so endpoint presence is sufficient for generation readiness here.
+            "llm": bool(settings.llm_endpoint),
             "embedding": bool(settings.embedding_endpoint and settings.embedding_api_key),
             "ocr": bool(settings.ocr_endpoint and settings.ocr_api_key),
         },

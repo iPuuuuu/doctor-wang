@@ -228,3 +228,12 @@ AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用�
 - **医疗报告**：技术状态码中文化；未知状态 fail-safe 显示“状态未知，请稍后刷新”，不误显示成功。
 - **验证**：`./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug --no-daemon` 三轮以上 BUILD SUCCESSFUL；22/22 单测 PASS；`git diff --check` PASS；APK 15MB。真机/模拟器视觉验证 NOT RUN（当前无设备）。
 - **审查**：独立 QA 首轮 REWORK（暗色语义色、HTML 清洗、未知状态）已全部修复；最终复核 ACCEPT，无 P0/P1 遗留。UI-001 状态 ACCEPTED。
+
+## AI-AGENTOPS-001 AgentOps-J 最小集成（2026-10-15）
+
+- **架构**：AgentOps-J 作为 AI Service 与 generation provider 之间的可选 HTTP 网关；RAG、证据校验、医疗安全 gate 和后端审计边界不变；embedding/OCR 不迁移。
+- **安全**：system/user/assistant message、temperature、max_tokens 保真转发；Doctor-Wang override 强制 `AGENTOPS_ALLOW_SIMULATED_PROVIDERS=false`，缺失或故障 provider 返回 503，不产生模拟医疗内容。
+- **部署**：新增 `deploy/docker-compose.agentops.yml`，AgentOps 仅 Compose 内网 expose、不映射公网端口；移除 override 即回滚直连。
+- **验证**：AgentOps `mvn test` 5/5 PASS；AI Service `pytest` 133/133 PASS；YAML 结构解析 PASS；`git diff --check` 两仓 PASS；脱敏本地 smoke 返回 primary provider、1 attempt、system/user 角色保留，trace/metrics 均可查询。
+- **运行发现**：修复 AgentOps `RedisConfiguration` 为 final 导致真实 Spring Boot 启动失败的问题，并增加回归测试。现有 nexaxis.ai/gpt-5.4 provider 在 2026-10-15 直接返回 503“模型暂不可用”；非集成代码故障。
+- **限制**：本机未安装 Docker，Compose 合并与容器 smoke NOT RUN；1.6GB VPS 启用额外 JVM 前须做容量验证。

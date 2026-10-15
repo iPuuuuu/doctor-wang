@@ -53,6 +53,7 @@ cd ai-service && pip install -e ".[dev]" && pytest
 ## 部署
 
 - 单机：`deploy/RUNBOOK.md`（.env 清单、TLS、验证）
+- 可选 AgentOps-J LLM 网关：`docs/agentops-integration.md`（路由、重试、trace、metrics，生产 fail-closed）
 - 服务器恢复（1.6GB VPS OOM 事故后）：`deploy/recover-server.sh` + `setup-server.sh`（swap、内存限制）
 - 生产环境要求：域名 + 受信任证书（当前自签证书仅限调试）、ClamAV 病毒扫描启用、监控告警（DEPLOY-001b）
 

@@ -1,0 +1,34 @@
+services:
+  agentops:
+    build:
+      # Defaults to the sibling checkout used by local development. Override this
+      # with AGENTOPS_BUILD_CONTEXT when the repositories live elsewhere.
+      context: ${AGENTOPS_BUILD_CONTEXT:-../../agentops-j}
+    container_name: doctor-wang-agentops
+    restart: unless-stopped
+    environment:
+      # Medical workloads must never receive AgentOps deterministic demo output.
+      AGENTOPS_ALLOW_SIMULATED_PROVIDERS: "false"
+      AGENTOPS_PRIMARY_ENDPOINT: ${AGENTOPS_PRIMARY_ENDPOINT:?AGENTOPS_PRIMARY_ENDPOINT must be set}
+      AGENTOPS_PRIMARY_API_KEY: ${AGENTOPS_PRIMARY_API_KEY:?AGENTOPS_PRIMARY_API_KEY must be set}
+      AGENTOPS_PRIMARY_MODEL: ${AGENTOPS_PRIMARY_MODEL:?AGENTOPS_PRIMARY_MODEL must be set}
+      AGENTOPS_FALLBACK_ENDPOINT: ${AGENTOPS_FALLBACK_ENDPOINT:-}
+      AGENTOPS_FALLBACK_API_KEY: ${AGENTOPS_FALLBACK_API_KEY:-}
+      AGENTOPS_FALLBACK_MODEL: ${AGENTOPS_FALLBACK_MODEL:-}
+      AGENTOPS_MAX_RETRIES: ${AGENTOPS_MAX_RETRIES:-1}
+      AGENTOPS_BACKOFF_MILLIS: ${AGENTOPS_BACKOFF_MILLIS:-250}
+      AGENTOPS_BREAKER_THRESHOLD: ${AGENTOPS_BREAKER_THRESHOLD:-2}
+      AGENTOPS_PROVIDER_TIMEOUT_MILLIS: ${AGENTOPS_PROVIDER_TIMEOUT_MILLIS:-60000}
+      JAVA_TOOL_OPTIONS: ${AGENTOPS_JAVA_TOOL_OPTIONS:--Xmx192m -XX:MaxMetaspaceSize=128m -Xss512k}
+    expose:
+      - "8080"
+
+  ai-service:
+    depends_on:
+      agentops:
+        condition: service_started
+    environment:
+      DW_AI_LLM_ENDPOINT: http://agentops:8080/v1/chat/completions
+      # AgentOps is private to the Compose network; it owns the upstream key.
+      DW_AI_LLM_API_KEY: ""
+      DW_AI_LLM_MODEL: balanced
