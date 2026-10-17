@@ -59,6 +59,7 @@ cd ai-service && pip install -e ".[dev]" && pytest
 
 ## 文档
 
+- 完整实施计划与最终目标：`docs/project-plan.md`
 - 架构与决策：`docs/`、`.ai/decisions/`（ADR-0003/0005-0009）
 - API 参考：`docs/api-reference.md`
 - 项目状态：`.ai/state/`

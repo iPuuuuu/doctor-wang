@@ -17,6 +17,8 @@ Current Phase:
 生产化阶段。ANDROID-001、PROD-001、SEC-001、DEPLOY-001a 已 ACCEPTED。本地测试实测：Android 15 + backend 78 + AI 97 = **190 tests PASS**、CI 全绿（含 Testcontainers 集成矩阵）。DEPLOY-001b（证书/监控/HA/ClamAV 编排）方案就绪（ADR-0009）+ 监控脚本已备。Remaining blockers: 生产服务器 120.55.186.220 OOM 卡死待用户重启、Android 真机验证、域名证书。
 
 Status:
+2026-10-17 规划基线：新增 `docs/project-plan.md`，将下一阶段收敛为现状再验证、Android 真机、正式证书与签名发布、文件安全、AI 质量门禁、监控和恢复演练。历史测试与生产证据仍保留，但后续发布必须按 M0 重新验证当前状态。
+
 AUTH-001 ACCEPTED (deferred tests). BACKEND-001 ACCEPTED — 报告 CRUD、用户管理、文件上传等基础能力已实现。 The MockMvc login regression and method-agnostic public-route bypass are closed by exact path-and-method matching. The approved TLS, pgcrypto BCrypt migration, server-side logout, Android server revoke, and release HTTPS URL guard are implemented and locally compiled. All locally-runnable tests PASS. PROD-001 ACCEPTED — Java 21 LTS（ADR-0007）：toolchain 21 + Dockerfile 21-jdk/21-jre，JDK 21 上 70/70 tests PASS、字节码 major 65。 SEC-001 ACCEPTED — 上传病毒扫描 fail-closed（ADR-0008）：ClamAvVirusScanner + 条件装配 + 13 新测试；真实 ClamAV 冒烟延 Docker。 DEPLOY-001a ACCEPTED — actuator /actuator/health 端点（ADR-0009）：白名单暴露 + MockMvc 实测 UP + compose healthcheck；DEPLOY-001b 方案就绪待环境。
 
 ## Current Task

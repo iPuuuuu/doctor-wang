@@ -40,6 +40,12 @@ Full state machine: `.ai/workflows/task-lifecycle.md`
 
 ## Completed Tasks (ACCEPTED/DONE)
 
+### PLAN-001 — 完整实施计划与最终目标 ✅
+
+- Status: ACCEPTED → DONE
+- Scope: `docs/project-plan.md`、README 与 roadmap 入口同步
+- Evidence: 计划覆盖终局目标、非目标、目标架构、M0–M6、测试/发布门禁、风险控制与推荐执行顺序；未修改业务代码或部署配置。
+
 ### AUTH-001 — JWT 登录垂直切片 ✅
 
 - Owner: Architect
